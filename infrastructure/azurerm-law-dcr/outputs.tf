@@ -11,6 +11,11 @@ output "dce_id" {
   value       = local.dce_id
 }
 
+output "dce_logs_ingestion_endpoint" {
+  description = "DCE logs ingestion endpoint URL (required for data ingestion API calls)"
+  value       = var.dce_name != null ? data.azurerm_monitor_data_collection_endpoint.main[0].logs_ingestion_endpoint : null
+}
+
 output "location" {
   description = "Azure region"
   value       = local.location

@@ -1,0 +1,53 @@
+MIT License
+
+Copyright (c) 2024 IT Operations Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Dependencies
+
+This module requires the following PowerShell module:
+
+### Az.Accounts
+- License: MIT License
+- Source: https://github.com/Azure/azure-powershell
+- Copyright: Microsoft Corporation
+
+---
+
+## Azure Services Used
+
+This module interacts with the following Azure services:
+
+### Azure Monitor Logs Ingestion API
+- Documentation: https://docs.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview
+- Terms of Use: https://azure.microsoft.com/support/legal/
+
+### Azure Active Directory
+- Documentation: https://docs.microsoft.com/azure/active-directory/
+- Terms of Use: https://azure.microsoft.com/support/legal/
+
+---
+
+## Attribution
+
+This module uses the Azure Monitor Logs Ingestion API as documented by Microsoft.
+All Azure service names and trademarks are property of Microsoft Corporation.

@@ -15,3 +15,8 @@ tags = {
   Owner      = "DevOps"
   Project    = "CustomLogging"
 }
+
+# Service Principals for Log Ingestion (RBAC)
+# Add Object IDs of service principals that need to push data to custom tables
+# Get Object ID: az ad sp show --id <app-id> --query id -o tsv
+log_ingestion_sp_object_ids = []

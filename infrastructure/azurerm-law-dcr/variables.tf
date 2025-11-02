@@ -34,3 +34,10 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# RBAC for log ingestion
+variable "log_ingestion_sp_object_ids" {
+  description = "List of service principal Object IDs that need log ingestion access. Get Object IDs with: az ad sp show --id <app-id> --query id -o tsv"
+  type        = list(string)
+  default     = []
+}
