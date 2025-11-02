@@ -23,9 +23,8 @@ module "app_metrics" {
   resource_group_name         = local.rg_name
   location                    = local.location
 
-  retention_in_days       = 30
-  total_retention_in_days = 30
-  table_plan              = "Basic" # Basic is cheaper for high-volume metrics
+  # Basic plan has fixed 8-day retention - do not specify retention parameters
+  table_plan = "Basic"
 
   transform_kql = "source" # No transformation needed
 

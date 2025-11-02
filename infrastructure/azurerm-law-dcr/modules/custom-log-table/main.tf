@@ -1,17 +1,27 @@
+locals {
+  # Build table properties, only including retention if specified
+  table_properties = merge(
+    {
+      schema = {
+        name    = var.schema.name
+        columns = var.schema.columns
+      }
+      plan = var.table_plan
+    },
+    var.retention_in_days != null ? { retentionInDays = var.retention_in_days } : {},
+    var.total_retention_in_days != null ? { totalRetentionInDays = var.total_retention_in_days } : {}
+  )
+}
+
 # Create the custom table in Log Analytics Workspace using AzAPI
 resource "azapi_resource" "custom_table" {
   name      = var.table_name
   parent_id = var.log_analytics_workspace_id
   type      = "Microsoft.OperationalInsights/workspaces/tables@2022-10-01"
 
-  body = {
-    properties = {
-      schema               = var.schema
-      retentionInDays      = var.retention_in_days
-      totalRetentionInDays = var.total_retention_in_days
-      plan                 = var.table_plan
-    }
-  }
+  body = jsonencode({
+    properties = local.table_properties
+  })
 }
 
 # Create the Data Collection Rule (DCR)

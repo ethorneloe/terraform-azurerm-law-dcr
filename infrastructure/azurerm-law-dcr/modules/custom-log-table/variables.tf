@@ -42,15 +42,15 @@ variable "location" {
 }
 
 variable "retention_in_days" {
-  description = "Retention in days"
+  description = "Retention in days (not supported for Basic plan - omit or set to null)"
   type        = number
-  default     = 30
+  default     = null
 }
 
 variable "total_retention_in_days" {
-  description = "Total retention in days (including archive)"
+  description = "Total retention in days including archive (not supported for Basic plan - omit or set to null)"
   type        = number
-  default     = 30
+  default     = null
 }
 
 variable "table_plan" {
