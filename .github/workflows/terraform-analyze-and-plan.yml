@@ -18,6 +18,10 @@
 #       - Uploads the Terraform plan files as GitHub Actions artifacts (encrypted at rest by GitHub).
 #       - Includes both binary plan file and human-readable text output.
 #       - Artifacts retained for 7 days with automatic cleanup.
+#   8. Post Plan to Pull Request (if triggered by PR):
+#       - Posts the Terraform plan output as a comment on the pull request.
+#       - Updates existing comment if one already exists for this environment.
+#       - Truncates output if it exceeds GitHub's comment size limit.
 #
 # Prerequisites:
 #   - GitHub Secrets for Azure credentials are properly configured for OIDC authentication.
@@ -35,6 +39,7 @@ permissions:
   contents: read         # Needed for the checkout action
   actions: read          # Needed for the upload-sarif action
   security-events: write # Needed for the upload-sarif action
+  pull-requests: write   # Needed to post plan output as PR comment
 
 on:
   workflow_call:
@@ -142,3 +147,69 @@ jobs:
           name: ${{ inputs.artifact_basename }}-txt
           path: ${{ inputs.working_directory }}/${{ inputs.plan_filename }}.txt
           retention-days: 7
+
+      - name: Post Plan to Pull Request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Read the plan output file
+            const fs = require('fs');
+            const planPath = '${{ inputs.working_directory }}/${{ inputs.plan_filename }}.txt';
+            const plan = fs.readFileSync(planPath, 'utf8');
+
+            // Truncate if too long (GitHub has a 65536 character limit for comments)
+            const maxLength = 65000;
+            let planOutput = plan;
+            let truncated = false;
+
+            if (plan.length > maxLength) {
+              planOutput = plan.substring(0, maxLength);
+              truncated = true;
+            }
+
+            // Create the comment body
+            const output = `#### Terraform Plan for \`${{ inputs.environment }}\` 📝
+            <details><summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+
+            </details>
+
+            ${truncated ? '*Plan output truncated. Download the full plan from artifacts.*' : ''}
+
+            **Working Directory:** \`${{ inputs.working_directory }}\`
+            **Plan File:** \`${{ inputs.plan_filename }}\`
+            **Artifact:** \`${{ inputs.artifact_basename }}\`
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            // Post or update the comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan for `${{ inputs.environment }}`')
+            });
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: output
+              });
+            }
