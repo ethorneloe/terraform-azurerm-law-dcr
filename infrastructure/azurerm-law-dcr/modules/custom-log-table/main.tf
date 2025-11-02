@@ -19,9 +19,9 @@ resource "azapi_resource" "custom_table" {
   parent_id = var.log_analytics_workspace_id
   type      = "Microsoft.OperationalInsights/workspaces/tables@2022-10-01"
 
-  body = jsonencode({
+  body = {
     properties = local.table_properties
-  })
+  }
 }
 
 # Create the Data Collection Rule (DCR)
