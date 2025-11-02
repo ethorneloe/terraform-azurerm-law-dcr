@@ -1,0 +1,74 @@
+# Purpose:
+#   - To orchestrate code analysis, Terraform plan, and optional apply steps in a single workflow while enabling options across multiple environments.
+#   - To allow for multiple backends and variable files to be used across different environments based on the repo directory structure.
+#   - To provide a single entry point for triggering Terraform orchestration across different environments across different events (push, pull request, workflow dispatch).
+#
+# Prerequisites:
+#   - This workflow calls the terraform-orchestration.yml workflow which in turn orchestrates the analysis, planning, and optional apply steps.
+#     Make sure all the requirements of the this workflow and other child workflows are configured correctly.
+#   - Make sure to set your working directory, backend and variable files as needed.
+#
+# Notes:
+#   - Expressions are not supported when using the "with" section for reusable workflows.
+
+name: Trigger Terraform Orchestration
+
+permissions:
+  id-token: write        # Needed for OIDC authentication
+  contents: read         # Needed for the checkout action
+  actions: read          # Needed for the upload-sarif action
+  security-events: write # Needed for the upload-sarif action
+
+on:
+  push:
+    paths:
+      - 'infrastructure/**'
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+
+jobs:
+  dev:
+    if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/terraform-orchestration.yml
+    secrets: inherit
+    concurrency: dev_infra
+    with:
+      environment: "dev"
+      run_tf_apply: true
+      working_directory: ./infrastructure/azurerm-law-dcr
+      tfbackend_filepath: ./env/dev/dev.tfbackend
+      tfvars_filepath: ./env/dev/dev.tfvars
+      enable_security_analysis: false
+
+  test:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/terraform-orchestration.yml
+    secrets: inherit
+    concurrency: test_infra
+    with:
+      environment: "test"
+      run_tf_apply: true
+      working_directory: ./infrastructure/azurerm-law-dcr
+      tfbackend_filepath: ./env/test/test.tfbackend
+      tfvars_filepath: ./env/test/test.tfvars
+      enable_security_analysis: true
+
+  prod:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/terraform-orchestration.yml
+    secrets: inherit
+    concurrency: prod_infra
+    with:
+      environment: "prod"
+      run_tf_apply: true
+      working_directory: ./infrastructure/azurerm-law-dcr
+      tfbackend_filepath: ./env/prod/prod.tfbackend
+      tfvars_filepath: ./env/prod/prod.tfvars
+      enable_security_analysis: true

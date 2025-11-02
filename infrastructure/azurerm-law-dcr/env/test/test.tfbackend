@@ -1,0 +1,4 @@
+resource_group_name  = "tfstate"
+storage_account_name = "tfstatelab1"
+container_name       = "tfstate-azurerm-law-table-dcr-test"
+key                  = "terraform.tfstate"
