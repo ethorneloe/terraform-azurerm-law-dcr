@@ -15,11 +15,8 @@ name: CI Module Test
 
 on:
   push:
-    paths:
-      - 'infrastructure/azurerm-law-dcr/modules/custom-log-table/**'
-      - 'ci/**'
-      - '.github/workflows/ci-module-test.yml'
-  pull_request:
+    branches-ignore:
+      - main
     paths:
       - 'infrastructure/azurerm-law-dcr/modules/custom-log-table/**'
       - 'ci/**'

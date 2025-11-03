@@ -29,8 +29,19 @@ Write-Host "Table Name: $TableName"
 Write-Host ""
 
 # Import the AzMonitorIngestion module
-$modulePath = Join-Path $PSScriptRoot "..\powershell\modules\AzMonitorIngestion\AzMonitorIngestion.psm1"
-Write-Host "Importing AzMonitorIngestion module..." -ForegroundColor Yellow
+# Build path that works cross-platform (Linux runner uses forward slashes)
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$modulePath = Join-Path $repoRoot "powershell" "modules" "AzMonitorIngestion" "AzMonitorIngestion.psm1"
+Write-Host "Repository root: $repoRoot" -ForegroundColor Cyan
+Write-Host "Module path: $modulePath" -ForegroundColor Cyan
+
+if (-not (Test-Path $modulePath)) {
+    Write-Error "Module not found at: $modulePath"
+    Write-Host "Contents of repository root:" -ForegroundColor Yellow
+    Get-ChildItem $repoRoot | Format-Table Name, PSIsContainer
+    exit 1
+}
+
 Import-Module $modulePath -Force -ErrorAction Stop
 Write-Host "Module imported successfully" -ForegroundColor Green
 Write-Host ""
