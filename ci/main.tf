@@ -61,7 +61,7 @@ module "ci_test_table" {
 # Grant the GitHub Actions service principal permission to ingest data
 resource "azurerm_role_assignment" "ci_metrics_publisher" {
   principal_id         = data.azurerm_client_config.current.object_id
-  scope                = local.law_id
+  scope                = module.ci_test_table.dcr_id
   role_definition_name = "Monitoring Metrics Publisher"
-  description          = "Allow GitHub Actions CI to publish metrics to custom tables for testing"
+  description          = "Allow GitHub Actions CI to publish metrics to DCR for testing"
 }
