@@ -1,0 +1,22 @@
+# CI Test Configuration for Custom Log Table Module
+terraform {
+  required_version = "~> 1.9"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 4.4.0"
+    }
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.0"
+    }
+  }
+  backend "azurerm" {}
+}
+
+provider "azurerm" {
+  features {}
+  resource_provider_registrations = "none"
+}
+
+provider "azapi" {}
