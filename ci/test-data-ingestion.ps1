@@ -29,9 +29,9 @@ Write-Host "Table Name: $TableName"
 Write-Host ""
 
 # Import the AzMonitorIngestion module
-# Build path that works cross-platform (Linux runner uses forward slashes)
+# Build path that works cross-platform (case-sensitive for Linux)
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$modulePath = Join-Path $repoRoot "powershell" "modules" "AzMonitorIngestion" "AzMonitorIngestion.psd1"
+$modulePath = Join-Path $repoRoot "PowerShell" "modules" "AzMonitorIngestion" "AzMonitorIngestion.psd1"
 Write-Host "Repository root: $repoRoot" -ForegroundColor Cyan
 Write-Host "Module path: $modulePath" -ForegroundColor Cyan
 
