@@ -108,8 +108,8 @@ jobs:
         if: steps.apply.outcome == 'success'
         run: |
           echo "Waiting for RBAC role assignments to propagate..."
-          echo "This can take 1-2 minutes for Azure AD to sync permissions"
-          sleep 90
+          echo "This can take 2-5 minutes for Azure AD to sync permissions"
+          sleep 180
 
       - name: Re-authenticate to Azure (Get Fresh Token with New Permissions)
         if: steps.apply.outcome == 'success'
