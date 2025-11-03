@@ -84,7 +84,7 @@ jobs:
         run: |
           terraform plan \
             -input=false \
-            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars \
+            -var-file=ci.tfvars \
             -out=ci-test.tfplan
 
       - name: Terraform Apply
@@ -218,7 +218,7 @@ jobs:
           terraform destroy \
             -input=false \
             -auto-approve \
-            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars || echo "Destroy failed, but continuing..."
+            -var-file=ci.tfvars || echo "Destroy failed, but continuing..."
 
       - name: Cleanup on Failure
         if: failure() && steps.apply.outcome == 'success'
@@ -227,7 +227,7 @@ jobs:
           terraform destroy \
             -input=false \
             -auto-approve \
-            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars || echo "Destroy failed"
+            -var-file=ci.tfvars || echo "Destroy failed"
 
       - name: Test Summary
         if: always()

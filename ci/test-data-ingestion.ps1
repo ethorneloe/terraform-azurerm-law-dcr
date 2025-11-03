@@ -1,5 +1,5 @@
 # Test Data Ingestion Script for CI
-# This script pushes test data to the custom table and verifies it
+# Uses the AzMonitorIngestion module from the powershell/ folder
 
 param(
     [Parameter(Mandatory=$true)]
@@ -28,14 +28,19 @@ Write-Host "DCE Endpoint: $DceEndpoint"
 Write-Host "Table Name: $TableName"
 Write-Host ""
 
-# Get access token for data ingestion
-# Note: Azure session is already established by azure/login action with enable-AzPSSession
-Write-Host "Getting access token..." -ForegroundColor Yellow
+# Import the AzMonitorIngestion module
+$modulePath = Join-Path $PSScriptRoot "..\powershell\modules\AzMonitorIngestion\AzMonitorIngestion.psm1"
+Write-Host "Importing AzMonitorIngestion module..." -ForegroundColor Yellow
+Import-Module $modulePath -Force -ErrorAction Stop
+Write-Host "Module imported successfully" -ForegroundColor Green
+Write-Host ""
+
+# Connect using current Azure context (already authenticated by azure/login action)
+Write-Host "Connecting to Azure Monitor..." -ForegroundColor Yellow
 try {
-    $accessToken = (Get-AzAccessToken -ResourceUrl "https://monitor.azure.com" -ErrorAction Stop).Token
-    Write-Host "Access token obtained successfully" -ForegroundColor Green
+    Connect-AzMonitorIngestion -UseCurrentContext -ErrorAction Stop
 } catch {
-    Write-Error "Failed to get access token: $_"
+    Write-Error "Failed to connect: $_"
     Write-Host "Current Azure context:" -ForegroundColor Yellow
     Get-AzContext | Format-List
     exit 1
@@ -46,7 +51,7 @@ $testId = [guid]::NewGuid().ToString()
 $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
 
 $testData = @(
-    @{
+    [PSCustomObject]@{
         TimeGenerated = $timestamp
         TestID = $testId
         TestResult = "Success"
@@ -55,31 +60,26 @@ $testData = @(
     }
 )
 
-$jsonData = $testData | ConvertTo-Json -Depth 10 -AsArray
 Write-Host "Test data prepared:" -ForegroundColor Yellow
-Write-Host $jsonData
-
-# Build ingestion URL
-$ingestionUrl = "$DceEndpoint/dataCollectionRules/$DcrImmutableId/streams/$($StreamName)?api-version=2023-01-01"
+$testData | Format-Table -AutoSize
 Write-Host ""
-Write-Host "Ingestion URL: $ingestionUrl" -ForegroundColor Yellow
 
-# Send data to DCR
-Write-Host ""
-Write-Host "Sending data to Log Analytics..." -ForegroundColor Yellow
-
-$headers = @{
-    "Authorization" = "Bearer $accessToken"
-    "Content-Type" = "application/json"
-}
-
+# Send data using the module
+Write-Host "Sending data to Azure Monitor..." -ForegroundColor Yellow
 try {
-    $response = Invoke-RestMethod -Uri $ingestionUrl -Method Post -Headers $headers -Body $jsonData -ErrorAction Stop
-    Write-Host "Data sent successfully!" -ForegroundColor Green
-    Write-Host "Response: $response"
+    $result = Send-AzMonitorData `
+        -DceEndpoint $DceEndpoint `
+        -DcrImmutableId $DcrImmutableId `
+        -StreamName $StreamName `
+        -Data $testData `
+        -Verbose `
+        -ErrorAction Stop
+
+    Write-Host ""
+    Write-Host "Send operation complete:" -ForegroundColor Green
+    $result | Format-List
 } catch {
     Write-Error "Failed to send data: $_"
-    Write-Error "Response: $($_.Exception.Response)"
     exit 1
 }
 
@@ -100,7 +100,10 @@ while ($elapsedTime -lt $maxWaitTime) {
     $query = "$TableName | where TestID == '$testId' | project TimeGenerated, TestID, TestResult, Duration, Message"
 
     try {
-        $queryResults = Invoke-AzOperationalInsightsQuery -WorkspaceId (Get-AzOperationalInsightsWorkspace -ResourceGroupName $ResourceGroup -Name $WorkspaceName).CustomerId -Query $query -ErrorAction Stop
+        $queryResults = Invoke-AzOperationalInsightsQuery `
+            -WorkspaceId (Get-AzOperationalInsightsWorkspace -ResourceGroupName $ResourceGroup -Name $WorkspaceName).CustomerId `
+            -Query $query `
+            -ErrorAction Stop
 
         if ($queryResults.Results.Count -gt 0) {
             Write-Host ""
@@ -109,10 +112,6 @@ while ($elapsedTime -lt $maxWaitTime) {
             Write-Host ""
             Write-Host "Query Results:" -ForegroundColor Green
             $queryResults.Results | Format-Table -AutoSize
-
-            # Export results for GitHub Actions
-            $env:CI_TEST_PASSED = "true"
-            $env:CI_TEST_RECORD_COUNT = $queryResults.Results.Count
 
             exit 0
         }
