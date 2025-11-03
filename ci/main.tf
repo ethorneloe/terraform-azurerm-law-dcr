@@ -21,6 +21,9 @@ locals {
   rg_name  = data.azurerm_log_analytics_workspace.main.resource_group_name
 }
 
+# Get the current client (GitHub Actions service principal)
+data "azurerm_client_config" "current" {}
+
 # Test Custom Table - CI Test Data
 module "ci_test_table" {
   source = "../infrastructure/azurerm-law-dcr/modules/custom-log-table"
@@ -53,4 +56,12 @@ module "ci_test_table" {
     Environment = "CI"
     Managed     = "GitHub Actions"
   }
+}
+
+# Grant the GitHub Actions service principal permission to ingest data
+resource "azurerm_role_assignment" "ci_metrics_publisher" {
+  principal_id         = data.azurerm_client_config.current.object_id
+  scope                = local.law_id
+  role_definition_name = "Monitoring Metrics Publisher"
+  description          = "Allow GitHub Actions CI to publish metrics to custom tables for testing"
 }
