@@ -63,6 +63,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -127,15 +128,9 @@ jobs:
         if: steps.apply.outcome == 'success'
         shell: pwsh
         run: |
-          # Connect to Azure using the existing service principal context
-          $env:ARM_USE_OIDC = "true"
-          Connect-AzAccount -Identity -ErrorAction SilentlyContinue
-          # If identity fails, try service principal
-          if (-not $?) {
-            $securePassword = ConvertTo-SecureString $env:ARM_CLIENT_SECRET -AsPlainText -Force
-            $credential = New-Object System.Management.Automation.PSCredential($env:ARM_CLIENT_ID, $securePassword)
-            Connect-AzAccount -ServicePrincipal -Tenant $env:ARM_TENANT_ID -Credential $credential
-          }
+          # Azure session is already established by azure/login action with enable-AzPSSession
+          Write-Host "Current Azure context:"
+          Get-AzContext | Format-List
 
           # Run the test script
           ./test-data-ingestion.ps1 `

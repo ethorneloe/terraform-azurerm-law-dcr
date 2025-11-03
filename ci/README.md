@@ -60,6 +60,9 @@ You can run the test locally:
 ```bash
 cd ci
 
+# Login to Azure (required for PowerShell script)
+az login
+
 # Initialize
 terraform init -backend-config=../infrastructure/azurerm-law-dcr/env/dev/dev.tfbackend
 
@@ -77,7 +80,8 @@ TABLE=$(terraform output -raw table_name)
 LAW=$(terraform output -raw law_name)
 RG=$(terraform output -raw law_resource_group)
 
-# Test data ingestion
+# Test data ingestion (requires Az PowerShell modules)
+# Note: Make sure you're logged in with Connect-AzAccount first
 pwsh test-data-ingestion.ps1 \
   -DcrImmutableId "$DCR_ID" \
   -StreamName "$STREAM" \
@@ -88,6 +92,18 @@ pwsh test-data-ingestion.ps1 \
 
 # Cleanup
 terraform destroy -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars
+```
+
+### Local Testing Prerequisites
+
+For local testing, ensure you have:
+```powershell
+# Install required PowerShell modules
+Install-Module -Name Az.Accounts -Force
+Install-Module -Name Az.OperationalInsights -Force
+
+# Login to Azure
+Connect-AzAccount
 ```
 
 ## GitHub Actions Workflow

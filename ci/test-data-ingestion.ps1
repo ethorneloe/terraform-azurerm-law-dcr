@@ -29,14 +29,17 @@ Write-Host "Table Name: $TableName"
 Write-Host ""
 
 # Get access token for data ingestion
+# Note: Azure session is already established by azure/login action with enable-AzPSSession
 Write-Host "Getting access token..." -ForegroundColor Yellow
-$accessToken = (Get-AzAccessToken -ResourceUrl "https://monitor.azure.com").Token
-
-if (-not $accessToken) {
-    Write-Error "Failed to get access token"
+try {
+    $accessToken = (Get-AzAccessToken -ResourceUrl "https://monitor.azure.com" -ErrorAction Stop).Token
+    Write-Host "Access token obtained successfully" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to get access token: $_"
+    Write-Host "Current Azure context:" -ForegroundColor Yellow
+    Get-AzContext | Format-List
     exit 1
 }
-Write-Host "Access token obtained successfully" -ForegroundColor Green
 
 # Create test data
 $testId = [guid]::NewGuid().ToString()
