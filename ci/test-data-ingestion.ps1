@@ -117,15 +117,18 @@ while ($elapsedTime -lt $maxWaitTime) {
             -Name $WorkspaceName `
             -ErrorAction Stop
 
-        Write-Verbose "Workspace CustomerId: $($workspace.CustomerId)"
+        $workspaceId = $workspace.CustomerId
+        Write-Host "  Workspace ID: $workspaceId" -ForegroundColor Gray
+        Write-Host "  Query: $query" -ForegroundColor Gray
 
-        # Query using the workspace's CustomerId (the actual workspace GUID)
+        # Query using the workspace's CustomerId with Timespan parameter (required)
         $queryResults = Invoke-AzOperationalInsightsQuery `
-            -WorkspaceId $workspace.CustomerId `
+            -WorkspaceId $workspaceId `
             -Query $query `
+            -Timespan (New-TimeSpan -Days 7) `
             -ErrorAction Stop
 
-        if ($queryResults.Results.Count -gt 0) {
+        if ($queryResults.Results -and $queryResults.Results.Count -gt 0) {
             Write-Host ""
             Write-Host "=== Data Ingestion Test PASSED ===" -ForegroundColor Green
             Write-Host "Found $($queryResults.Results.Count) record(s) in the table"
