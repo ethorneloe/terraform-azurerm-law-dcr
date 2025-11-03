@@ -58,18 +58,6 @@ module "ci_test_table" {
   }
 }
 
-# Grant the GitHub Actions service principal permission to ingest data
-resource "azurerm_role_assignment" "ci_metrics_publisher" {
-  principal_id         = data.azurerm_client_config.current.object_id
-  scope                = module.ci_test_table.dcr_id
-  role_definition_name = "Monitoring Metrics Publisher"
-  description          = "Allow GitHub Actions CI to publish metrics to DCR for testing"
-}
-
-# Grant the GitHub Actions service principal permission to query the workspace
-resource "azurerm_role_assignment" "ci_log_analytics_reader" {
-  principal_id         = data.azurerm_client_config.current.object_id
-  scope                = local.law_id
-  role_definition_name = "Log Analytics Reader"
-  description          = "Allow GitHub Actions CI to query Log Analytics workspace for test verification"
-}
+# Note: RBAC permissions are managed manually outside of this CI test
+# The GitHub Actions service principal should have "Monitoring Metrics Publisher"
+# role at the resource group level to allow data ingestion to all DCRs
