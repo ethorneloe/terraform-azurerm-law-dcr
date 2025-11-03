@@ -1,0 +1,250 @@
+# CI Module Test Workflow
+# Purpose: End-to-end testing of the custom-log-table module
+#
+# Triggers:
+#   - Changes to the custom-log-table module
+#   - Manual workflow dispatch
+#
+# Steps:
+#   1. Deploy test infrastructure (custom table + DCR)
+#   2. Ingest test data using DCR
+#   3. Verify data appears in Log Analytics
+#   4. Cleanup (always runs, even on failure)
+
+name: CI Module Test
+
+on:
+  push:
+    paths:
+      - 'infrastructure/azurerm-law-dcr/modules/custom-log-table/**'
+      - 'ci/**'
+      - '.github/workflows/ci-module-test.yml'
+  pull_request:
+    paths:
+      - 'infrastructure/azurerm-law-dcr/modules/custom-log-table/**'
+      - 'ci/**'
+      - '.github/workflows/ci-module-test.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  WORKING_DIR: ci
+  TF_VERSION: "1.9"
+  ARM_USE_OIDC: true
+  ARM_USE_AZUREAD: true
+
+jobs:
+  test-module:
+    name: Test Custom Log Table Module
+    runs-on: ubuntu-latest
+    environment: dev
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ci
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -input=false \
+            -backend-config=../infrastructure/azurerm-law-dcr/env/dev/dev.tfbackend
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -input=false \
+            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars \
+            -out=ci-test.tfplan
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          terraform apply -input=false -auto-approve ci-test.tfplan
+          echo "apply_status=success" >> $GITHUB_OUTPUT
+
+      - name: Capture Terraform Outputs
+        id: outputs
+        if: steps.apply.outcome == 'success'
+        run: |
+          DCR_IMMUTABLE_ID=$(terraform output -raw dcr_immutable_id)
+          STREAM_NAME=$(terraform output -raw stream_name)
+          DCE_ENDPOINT=$(terraform output -raw dce_logs_ingestion_endpoint)
+          TABLE_NAME=$(terraform output -raw table_name)
+          LAW_NAME=$(terraform output -raw law_name)
+          LAW_RG=$(terraform output -raw law_resource_group)
+
+          echo "dcr_immutable_id=$DCR_IMMUTABLE_ID" >> $GITHUB_OUTPUT
+          echo "stream_name=$STREAM_NAME" >> $GITHUB_OUTPUT
+          echo "dce_endpoint=$DCE_ENDPOINT" >> $GITHUB_OUTPUT
+          echo "table_name=$TABLE_NAME" >> $GITHUB_OUTPUT
+          echo "law_name=$LAW_NAME" >> $GITHUB_OUTPUT
+          echo "law_rg=$LAW_RG" >> $GITHUB_OUTPUT
+
+          echo "DCR Immutable ID: $DCR_IMMUTABLE_ID"
+          echo "Stream Name: $STREAM_NAME"
+          echo "DCE Endpoint: $DCE_ENDPOINT"
+
+      - name: Install Az PowerShell Module
+        if: steps.apply.outcome == 'success'
+        shell: pwsh
+        run: |
+          Install-Module -Name Az.Accounts -Force -AllowClobber -Scope CurrentUser
+          Install-Module -Name Az.OperationalInsights -Force -AllowClobber -Scope CurrentUser
+          Write-Host "Az modules installed successfully"
+
+      - name: Test Data Ingestion
+        id: test_ingestion
+        if: steps.apply.outcome == 'success'
+        shell: pwsh
+        run: |
+          # Connect to Azure using the existing service principal context
+          $env:ARM_USE_OIDC = "true"
+          Connect-AzAccount -Identity -ErrorAction SilentlyContinue
+          # If identity fails, try service principal
+          if (-not $?) {
+            $securePassword = ConvertTo-SecureString $env:ARM_CLIENT_SECRET -AsPlainText -Force
+            $credential = New-Object System.Management.Automation.PSCredential($env:ARM_CLIENT_ID, $securePassword)
+            Connect-AzAccount -ServicePrincipal -Tenant $env:ARM_TENANT_ID -Credential $credential
+          }
+
+          # Run the test script
+          ./test-data-ingestion.ps1 `
+            -DcrImmutableId "${{ steps.outputs.outputs.dcr_immutable_id }}" `
+            -StreamName "${{ steps.outputs.outputs.stream_name }}" `
+            -DceEndpoint "${{ steps.outputs.outputs.dce_endpoint }}" `
+            -TableName "${{ steps.outputs.outputs.table_name }}" `
+            -WorkspaceName "${{ steps.outputs.outputs.law_name }}" `
+            -ResourceGroup "${{ steps.outputs.outputs.law_rg }}"
+
+      - name: Post Test Results to PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const applySuccess = '${{ steps.apply.outcome }}' === 'success';
+            const testSuccess = '${{ steps.test_ingestion.outcome }}' === 'success';
+
+            let emoji = '';
+            let status = '';
+
+            if (applySuccess && testSuccess) {
+              emoji = '✅';
+              status = 'PASSED';
+            } else if (!applySuccess) {
+              emoji = '❌';
+              status = 'FAILED (Deploy)';
+            } else {
+              emoji = '❌';
+              status = 'FAILED (Data Ingestion)';
+            }
+
+            const output = `#### ${emoji} CI Module Test: ${status}
+
+            **Test Summary:**
+            - Infrastructure Deployment: ${applySuccess ? '✅ Success' : '❌ Failed'}
+            - Data Ingestion Test: ${testSuccess ? '✅ Success' : '❌ Failed'}
+
+            **Test Details:**
+            - Module: \`custom-log-table\`
+            - Test Table: \`CITest_CL\`
+            - Environment: \`dev\`
+
+            <details><summary>Test Configuration</summary>
+
+            - DCR Immutable ID: \`${{ steps.outputs.outputs.dcr_immutable_id }}\`
+            - Stream Name: \`${{ steps.outputs.outputs.stream_name }}\`
+            - Table Name: \`${{ steps.outputs.outputs.table_name }}\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Workflow: CI Module Test*`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('CI Module Test:')
+            });
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: output
+              });
+            }
+
+      - name: Terraform Destroy
+        if: always() && steps.apply.outcome == 'success'
+        run: |
+          echo "Destroying test infrastructure..."
+          terraform destroy \
+            -input=false \
+            -auto-approve \
+            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars || echo "Destroy failed, but continuing..."
+
+      - name: Cleanup on Failure
+        if: failure() && steps.apply.outcome == 'success'
+        run: |
+          echo "Test failed, attempting to destroy resources..."
+          terraform destroy \
+            -input=false \
+            -auto-approve \
+            -var-file=../infrastructure/azurerm-law-dcr/env/dev/dev.tfvars || echo "Destroy failed"
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "=== CI Module Test Summary ==="
+          echo "Apply Status: ${{ steps.apply.outcome }}"
+          echo "Test Status: ${{ steps.test_ingestion.outcome }}"
+
+          if [[ "${{ steps.apply.outcome }}" == "success" && "${{ steps.test_ingestion.outcome }}" == "success" ]]; then
+            echo "✅ All tests passed!"
+            exit 0
+          else
+            echo "❌ Tests failed!"
+            exit 1
+          fi
