@@ -65,3 +65,11 @@ resource "azurerm_role_assignment" "ci_metrics_publisher" {
   role_definition_name = "Monitoring Metrics Publisher"
   description          = "Allow GitHub Actions CI to publish metrics to DCR for testing"
 }
+
+# Grant the GitHub Actions service principal permission to query the workspace
+resource "azurerm_role_assignment" "ci_log_analytics_reader" {
+  principal_id         = data.azurerm_client_config.current.object_id
+  scope                = local.law_id
+  role_definition_name = "Log Analytics Reader"
+  description          = "Allow GitHub Actions CI to query Log Analytics workspace for test verification"
+}

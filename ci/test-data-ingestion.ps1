@@ -111,8 +111,17 @@ while ($elapsedTime -lt $maxWaitTime) {
     $query = "$TableName | where TestID == '$testId' | project TimeGenerated, TestID, TestResult, Duration, Message"
 
     try {
+        # Get the workspace object first
+        $workspace = Get-AzOperationalInsightsWorkspace `
+            -ResourceGroupName $ResourceGroup `
+            -Name $WorkspaceName `
+            -ErrorAction Stop
+
+        Write-Verbose "Workspace CustomerId: $($workspace.CustomerId)"
+
+        # Query using the workspace's CustomerId (the actual workspace GUID)
         $queryResults = Invoke-AzOperationalInsightsQuery `
-            -WorkspaceId (Get-AzOperationalInsightsWorkspace -ResourceGroupName $ResourceGroup -Name $WorkspaceName).CustomerId `
+            -WorkspaceId $workspace.CustomerId `
             -Query $query `
             -ErrorAction Stop
 
@@ -127,7 +136,10 @@ while ($elapsedTime -lt $maxWaitTime) {
             exit 0
         }
     } catch {
-        Write-Host "Query failed or returned no results: $_" -ForegroundColor Yellow
+        Write-Host "Query attempt failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        if ($_.Exception.Response) {
+            Write-Host "Response Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Yellow
+        }
     }
 }
 
