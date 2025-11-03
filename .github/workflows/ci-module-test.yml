@@ -111,6 +111,14 @@ jobs:
           echo "Stream Name: $STREAM_NAME"
           echo "DCE Endpoint: $DCE_ENDPOINT"
 
+      - name: Install Az PowerShell Module
+        if: steps.apply.outcome == 'success'
+        shell: pwsh
+        run: |
+          Install-Module -Name Az.Accounts -Force -AllowClobber -Scope CurrentUser
+          Install-Module -Name Az.OperationalInsights -Force -AllowClobber -Scope CurrentUser
+          Write-Host "Az modules installed successfully"
+
       - name: Test Data Ingestion
         id: test_ingestion
         if: steps.apply.outcome == 'success'
