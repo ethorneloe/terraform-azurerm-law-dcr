@@ -54,14 +54,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -111,6 +103,22 @@ jobs:
           echo "DCR Immutable ID: $DCR_IMMUTABLE_ID"
           echo "Stream Name: $STREAM_NAME"
           echo "DCE Endpoint: $DCE_ENDPOINT"
+
+      - name: Wait for RBAC Propagation
+        if: steps.apply.outcome == 'success'
+        run: |
+          echo "Waiting for RBAC role assignments to propagate..."
+          echo "This can take 1-2 minutes for Azure AD to sync permissions"
+          sleep 90
+
+      - name: Re-authenticate to Azure (Get Fresh Token with New Permissions)
+        if: steps.apply.outcome == 'success'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
       - name: Install Az PowerShell Module
         if: steps.apply.outcome == 'success'
