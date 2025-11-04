@@ -13,6 +13,7 @@ locals {
   )
 }
 
+# Change to test CI
 # Create the custom table in Log Analytics Workspace using AzAPI
 resource "azapi_resource" "custom_table" {
   name      = var.table_name
