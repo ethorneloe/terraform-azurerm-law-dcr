@@ -21,36 +21,20 @@ output "location" {
   value       = local.location
 }
 
-# App Metrics table outputs
-output "app_metrics_dcr_id" {
-  description = "DCR Resource ID for App Metrics table"
-  value       = module.app_metrics.dcr_id
+# Conditional Access Policies table outputs
+output "conditional_access_policies_dcr_id" {
+  description = "DCR Resource ID for Conditional Access Policies table"
+  value       = module.conditional_access_policies_table.dcr_id
 }
 
-output "app_metrics_dcr_immutable_id" {
-  description = "DCR Immutable ID for App Metrics (use for data ingestion)"
-  value       = module.app_metrics.dcr_immutable_id
+output "conditional_access_policies_dcr_immutable_id" {
+  description = "DCR Immutable ID for Conditional Access Policies (use for data ingestion)"
+  value       = module.conditional_access_policies_table.dcr_immutable_id
 }
 
-output "app_metrics_stream_name" {
-  description = "Stream name for App Metrics ingestion"
-  value       = module.app_metrics.stream_name
-}
-
-# Security Events table outputs
-output "security_events_dcr_id" {
-  description = "DCR Resource ID for Security Events table"
-  value       = module.security_events.dcr_id
-}
-
-output "security_events_dcr_immutable_id" {
-  description = "DCR Immutable ID for Security Events (use for data ingestion)"
-  value       = module.security_events.dcr_immutable_id
-}
-
-output "security_events_stream_name" {
-  description = "Stream name for Security Events ingestion"
-  value       = module.security_events.stream_name
+output "conditional_access_policies_stream_name" {
+  description = "Stream name for Conditional Access Policies ingestion"
+  value       = module.conditional_access_policies_table.stream_name
 }
 
 # Add additional outputs here as you create more custom table files
