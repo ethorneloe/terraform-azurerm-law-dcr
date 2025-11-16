@@ -18,9 +18,21 @@
     The immutable ID (GUID) of the Data Collection Rule.
     Example: dcr-1234567890abcdef1234567890abcdef
 
-.PARAMETER StreamName
-    The stream name for the DCR (typically "Custom-<TableName>").
+.PARAMETER PoliciesStreamName
+    The stream name for the Policies DCR (typically "Custom-ConditionalAccessPolicies_CL").
     Example: Custom-ConditionalAccessPolicies_CL
+
+.PARAMETER PoliciesDcrImmutableId
+    The immutable ID (GUID) of the Data Collection Rule for Policies.
+    Example: dcr-1234567890abcdef1234567890abcdef
+
+.PARAMETER NamedLocationsStreamName
+    The stream name for the Named Locations DCR (typically "Custom-ConditionalAccessNamedLocations_CL").
+    Example: Custom-ConditionalAccessNamedLocations_CL
+
+.PARAMETER NamedLocationsDcrImmutableId
+    The immutable ID (GUID) of the Data Collection Rule for Named Locations.
+    Example: dcr-abcdef1234567890abcdef1234567890
 
 .PARAMETER TenantId
     The Entra ID tenant ID to query.
@@ -43,8 +55,10 @@
     # Run in Azure Automation with Managed Identity
     .\Send-ConditionalAccessToLogAnalytics.ps1 `
         -DceEndpoint "https://dce-prod-001.australiaeast-1.ingest.monitor.azure.com" `
-        -DcrImmutableId "dcr-abc123..." `
-        -StreamName "Custom-ConditionalAccessPolicies_CL" `
+        -PoliciesDcrImmutableId "dcr-abc123..." `
+        -PoliciesStreamName "Custom-ConditionalAccessPolicies_CL" `
+        -NamedLocationsDcrImmutableId "dcr-def456..." `
+        -NamedLocationsStreamName "Custom-ConditionalAccessNamedLocations_CL" `
         -UseManagedIdentity
 
 .EXAMPLE
@@ -53,8 +67,10 @@
     Connect-AzAccount
     .\Send-ConditionalAccessToLogAnalytics.ps1 `
         -DceEndpoint "https://dce-dev-001.australiaeast-1.ingest.monitor.azure.com" `
-        -DcrImmutableId "dcr-xyz789..." `
-        -StreamName "Custom-ConditionalAccessPolicies_CL" `
+        -PoliciesDcrImmutableId "dcr-policies123..." `
+        -PoliciesStreamName "Custom-ConditionalAccessPolicies_CL" `
+        -NamedLocationsDcrImmutableId "dcr-locations456..." `
+        -NamedLocationsStreamName "Custom-ConditionalAccessNamedLocations_CL" `
         -UseExistingGraphSession `
         -UseCurrentContext
 
@@ -74,10 +90,16 @@ param(
     [string]$DceEndpoint,
 
     [Parameter(Mandatory = $true)]
-    [string]$DcrImmutableId,
+    [string]$PoliciesDcrImmutableId,
 
     [Parameter(Mandatory = $true)]
-    [string]$StreamName,
+    [string]$PoliciesStreamName,
+
+    [Parameter(Mandatory = $true)]
+    [string]$NamedLocationsDcrImmutableId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$NamedLocationsStreamName,
 
     [Parameter(Mandatory = $false)]
     [string]$TenantId,
@@ -318,37 +340,109 @@ Write-Host ""
 
 #endregion
 
-#region Send Data to Log Analytics
+#region Transform Named Locations for Log Analytics
 
-Write-Host "Sending data to Log Analytics..." -ForegroundColor Yellow
+Write-Host "Transforming named locations data for Log Analytics..." -ForegroundColor Yellow
+
+$namedLocationsData = @()
+
+foreach ($location in $caConfig.NamedLocations) {
+    # Create a new object with all properties from the location plus TimeGenerated
+    $locationRecord = [PSCustomObject]@{
+        TimeGenerated                       = $timestamp
+        Id                                  = $location.Id
+        DisplayName                         = $location.DisplayName
+        CreatedDateTime                     = $location.CreatedDateTime
+        ModifiedDateTime                    = $location.ModifiedDateTime
+        IsTrusted                           = $location.IsTrusted
+        IpRanges                            = $location.IpRanges
+        Countries                           = $location.Countries
+        IncludeUnknownCountriesAndRegions   = $location.IncludeUnknownCountriesAndRegions
+        CountryLookupMethod                 = $location.CountryLookupMethod
+    }
+
+    $namedLocationsData += $locationRecord
+}
+
+Write-Host "✓ Prepared $($namedLocationsData.Count) named location records for ingestion" -ForegroundColor Green
+Write-Host ""
+
+#endregion
+
+#region Send Policies Data to Log Analytics
+
+Write-Host "Sending Conditional Access Policies to Log Analytics..." -ForegroundColor Yellow
 Write-Host "  DCE: $DceEndpoint" -ForegroundColor Gray
-Write-Host "  DCR: $DcrImmutableId" -ForegroundColor Gray
-Write-Host "  Stream: $StreamName" -ForegroundColor Gray
+Write-Host "  DCR: $PoliciesDcrImmutableId" -ForegroundColor Gray
+Write-Host "  Stream: $PoliciesStreamName" -ForegroundColor Gray
 Write-Host ""
 
 try {
     $result = Send-AzMonitorData `
         -DceEndpoint $DceEndpoint `
-        -DcrImmutableId $DcrImmutableId `
-        -StreamName $StreamName `
+        -DcrImmutableId $PoliciesDcrImmutableId `
+        -StreamName $PoliciesStreamName `
         -Data $logData `
         -Verbose `
         -ErrorAction Stop
 
     Write-Host ""
-    Write-Host "=== Ingestion Successful ===" -ForegroundColor Green
-    Write-Host "✓ Sent $($logData.Count) Conditional Access policy records to Log Analytics" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Data will be available for querying in 1-5 minutes." -ForegroundColor Yellow
-    Write-Host "Query example:" -ForegroundColor Cyan
-    Write-Host "  ConditionalAccessPolicies_CL" -ForegroundColor White
-    Write-Host "  | where TimeGenerated > ago(1h)" -ForegroundColor White
-    Write-Host "  | project TimeGenerated, DisplayName, State, PolicyId" -ForegroundColor White
+    Write-Host "✓ Sent $($logData.Count) Conditional Access policy records" -ForegroundColor Green
 
 } catch {
-    Write-Error "Failed to send data to Log Analytics: $_"
+    Write-Error "Failed to send policies data to Log Analytics: $_"
     exit 1
 }
+
+#endregion
+
+#region Send Named Locations Data to Log Analytics
+
+Write-Host ""
+Write-Host "Sending Named Locations to Log Analytics..." -ForegroundColor Yellow
+Write-Host "  DCE: $DceEndpoint" -ForegroundColor Gray
+Write-Host "  DCR: $NamedLocationsDcrImmutableId" -ForegroundColor Gray
+Write-Host "  Stream: $NamedLocationsStreamName" -ForegroundColor Gray
+Write-Host ""
+
+try {
+    $result = Send-AzMonitorData `
+        -DceEndpoint $DceEndpoint `
+        -DcrImmutableId $NamedLocationsDcrImmutableId `
+        -StreamName $NamedLocationsStreamName `
+        -Data $namedLocationsData `
+        -Verbose `
+        -ErrorAction Stop
+
+    Write-Host ""
+    Write-Host "✓ Sent $($namedLocationsData.Count) Named Location records" -ForegroundColor Green
+
+} catch {
+    Write-Error "Failed to send named locations data to Log Analytics: $_"
+    exit 1
+}
+
+#endregion
+
+#region Summary
+
+Write-Host ""
+Write-Host "=== Ingestion Successful ===" -ForegroundColor Green
+Write-Host "✓ Sent $($logData.Count) Conditional Access policy records" -ForegroundColor Green
+Write-Host "✓ Sent $($namedLocationsData.Count) Named Location records" -ForegroundColor Green
+Write-Host ""
+Write-Host "Data will be available for querying in 1-5 minutes." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Query examples:" -ForegroundColor Cyan
+Write-Host "  // Policies" -ForegroundColor White
+Write-Host "  ConditionalAccessPolicies_CL" -ForegroundColor White
+Write-Host "  | where TimeGenerated > ago(1h)" -ForegroundColor White
+Write-Host "  | project TimeGenerated, DisplayName, State, PolicyId" -ForegroundColor White
+Write-Host ""
+Write-Host "  // Named Locations" -ForegroundColor White
+Write-Host "  ConditionalAccessNamedLocations_CL" -ForegroundColor White
+Write-Host "  | where TimeGenerated > ago(1h)" -ForegroundColor White
+Write-Host "  | project TimeGenerated, DisplayName, IsTrusted, IpRanges, Countries" -ForegroundColor White
 
 #endregion
 

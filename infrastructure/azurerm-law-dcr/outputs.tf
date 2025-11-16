@@ -37,4 +37,20 @@ output "conditional_access_policies_stream_name" {
   value       = module.conditional_access_policies_table.stream_name
 }
 
+# Conditional Access Named Locations table outputs
+output "conditional_access_named_locations_dcr_id" {
+  description = "DCR Resource ID for Conditional Access Named Locations table"
+  value       = module.conditional_access_named_locations_table.dcr_id
+}
+
+output "conditional_access_named_locations_dcr_immutable_id" {
+  description = "DCR Immutable ID for Conditional Access Named Locations (use for data ingestion)"
+  value       = module.conditional_access_named_locations_table.dcr_immutable_id
+}
+
+output "conditional_access_named_locations_stream_name" {
+  description = "Stream name for Conditional Access Named Locations ingestion"
+  value       = module.conditional_access_named_locations_table.stream_name
+}
+
 # Add additional outputs here as you create more custom table files
