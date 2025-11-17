@@ -59,109 +59,40 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
     },
 
     {
-      "type": 9,
+      "type": 3,
       "content": {
-        "version": "KqlParameterItem/1.0",
-        "parameters": [
-
-          {
-            "id": "total-policies-param",
-            "name": "TotalPolicies",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize TotalPolicies = coalesce(dcount(PolicyId), 0)\n| project TotalPolicies",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "enabled-policies-param",
-            "name": "EnabledPolicies",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize EnabledPolicies = coalesce(dcountif(PolicyId, State == 'enabled'), 0)\n| project EnabledPolicies",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "enabled-percentage-param",
-            "name": "EnabledPercentage",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize Total = dcount(PolicyId), Enabled = dcountif(PolicyId, State == 'enabled')\n| extend Total = coalesce(Total,0), Enabled = coalesce(Enabled,0)\n| extend EnabledPercentage = iff(Total == 0, 0, round((Enabled * 100.0) / Total, 1))\n| project EnabledPercentage",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "exemptions-param",
-            "name": "PoliciesWithExemptions",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize PoliciesWithExemptions = coalesce(dcountif(PolicyId, isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles)), 0)\n| project PoliciesWithExemptions",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "total-locations-param",
-            "name": "TotalLocations",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| summarize TotalLocations = coalesce(dcount(Id), 0)\n| project TotalLocations",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "trusted-locations-param",
-            "name": "TrustedLocations",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| summarize TrustedLocations = coalesce(dcountif(Id, IsTrusted == true), 0)\n| project TrustedLocations",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          },
-
-          {
-            "id": "trusted-percentage-param",
-            "name": "TrustedPercentage",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| summarize Total = dcount(Id), Trusted = dcountif(Id, IsTrusted == true)\n| extend Total = coalesce(Total,0), Trusted = coalesce(Trusted,0)\n| extend TrustedPercentage = iff(Total == 0, 0, round((Trusted * 100.0) / Total, 1))\n| project TrustedPercentage",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "timeContext": { "durationMs": 0 },
-            "version": "KqlParameterItem/1.0"
-          }
-
-        ],
-        "style": "pills",
+        "version": "KqlItem/1.0",
+        "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize \n    Total = dcount(PolicyId),\n    Enabled = dcountif(PolicyId, State == 'enabled'),\n    ReportOnly = dcountif(PolicyId, State == 'enabledForReportingButNotEnforced')\n| project \n    Metric = 'Total',\n    Value = Total\n| union (\n    ConditionalAccessPolicies_CL\n    | where TimeGenerated {TimeRange}\n    | summarize Enabled = dcountif(PolicyId, State == 'enabled')\n    | project Metric = 'Enabled', Value = Enabled\n)\n| union (\n    ConditionalAccessPolicies_CL\n    | where TimeGenerated {TimeRange}\n    | summarize ReportOnly = dcountif(PolicyId, State == 'enabledForReportingButNotEnforced')\n    | project Metric = 'Report-Only', Value = ReportOnly\n)",
+        "size": 4,
+        "title": "Policy Overview",
         "queryType": 0,
-        "resourceType": "microsoft.operationalinsights/workspaces"
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Metric",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Value",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            },
+            "numberFormat": {
+              "unit": 17,
+              "options": {
+                "style": "decimal",
+                "useGrouping": false,
+                "maximumFractionDigits": 2,
+                "maximumSignificantDigits": 3
+              }
+            }
+          },
+          "showBorder": true
+        }
       },
-      "name": "parameters - kpi data"
-    },
-
-    {
-      "type": 1,
-      "content": {
-        "json": "## 📊 Key Metrics\n\n<div style=\"display: flex; gap: 20px; text-align: center; flex-wrap: wrap;\">\n\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #667eea, #764ba2); padding: 25px; border-radius: 12px; color: white;\">\n    <div style=\"font-size: 14px; opacity: .85; text-transform: uppercase; margin-bottom: 6px;\">Total Policies</div>\n    <div style=\"font-size: 52px; font-weight: 700; line-height: 1;\">{TotalPolicies}</div>\n    <div style=\"margin-top: 8px; font-size: 16px; opacity: .85;\">{EnabledPolicies} enabled ({EnabledPercentage}%)</div>\n  </div>\n\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #f093fb, #f5576c); padding: 25px; border-radius: 12px; color: white;\">\n    <div style=\"font-size: 14px; opacity: .85; text-transform: uppercase; margin-bottom: 6px;\">Policies with Exemptions</div>\n    <div style=\"font-size: 52px; font-weight: 700; line-height: 1;\">{PoliciesWithExemptions}</div>\n    <div style=\"margin-top: 8px; font-size: 16px; opacity: .85;\">Active exclusions applied</div>\n  </div>\n\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #4facfe, #00f2fe); padding: 25px; border-radius: 12px; color: white;\">\n    <div style=\"font-size: 14px; opacity: .85; text-transform: uppercase; margin-bottom: 6px;\">Named Locations</div>\n    <div style=\"font-size: 52px; font-weight: 700; line-height: 1;\">{TotalLocations}</div>\n    <div style=\"margin-top: 8px; font-size: 16px; opacity: .85;\">{TrustedLocations} trusted ({TrustedPercentage}%)</div>\n  </div>\n\n</div>"
-      },
-      "name": "markdown - kpi cards"
+      "name": "tiles - policy metrics"
     },
 
     {
