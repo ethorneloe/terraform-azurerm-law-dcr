@@ -184,29 +184,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
       {
         type = 1
         content = {
-          json = <<-EOT
-## 📊 Key Metrics
-
-<div style="display: flex; gap: 20px; flex-wrap: wrap;">
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Total Policies</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{TotalPolicies}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">{EnabledPolicies} enabled ({EnabledPercentage}%)</div>
-  </div>
-
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Policies with Exemptions</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{PoliciesWithExemptions}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">Active exclusions applied</div>
-  </div>
-
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Named Locations</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{TotalLocations}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">{TrustedLocations} trusted ({TrustedPercentage}%)</div>
-  </div>
-</div>
-          EOT
+          markdown = "## 📊 Key Metrics\n\n<div style=\"display: flex; gap: 20px; flex-wrap: wrap;\">\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">\n    <div style=\"color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;\">Total Policies</div>\n    <div style=\"color: white; font-size: 56px; font-weight: 700; line-height: 1;\">{{TotalPolicies}}</div>\n    <div style=\"color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;\">{{EnabledPolicies}} enabled ({{EnabledPercentage}}%)</div>\n  </div>\n\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">\n    <div style=\"color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;\">Policies with Exemptions</div>\n    <div style=\"color: white; font-size: 56px; font-weight: 700; line-height: 1;\">{{PoliciesWithExemptions}}</div>\n    <div style=\"color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;\">Active exclusions applied</div>\n  </div>\n\n  <div style=\"flex: 1; min-width: 250px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">\n    <div style=\"color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;\">Named Locations</div>\n    <div style=\"color: white; font-size: 56px; font-weight: 700; line-height: 1;\">{{TotalLocations}}</div>\n    <div style=\"color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;\">{{TrustedLocations}} trusted ({{TrustedPercentage}}%)</div>\n  </div>\n</div>\n"
         }
         name = "markdown - kpi cards"
       },
