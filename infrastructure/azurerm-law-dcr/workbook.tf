@@ -109,7 +109,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
               name               = "TotalLocations"
               type               = 1
               isHiddenWhenLocked = true
-              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize dcount(LocationId)"
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize dcount(Id)"
               queryType          = 0
               resourceType       = "microsoft.operationalinsights/workspaces"
             },
@@ -119,7 +119,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
               name               = "TrustedLocations"
               type               = 1
               isHiddenWhenLocked = true
-              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | where IsTrusted == true | summarize dcount(LocationId)"
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | where IsTrusted == true | summarize dcount(Id)"
               queryType          = 0
               resourceType       = "microsoft.operationalinsights/workspaces"
             },
@@ -129,7 +129,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
               name               = "TrustedPercentage"
               type               = 1
               isHiddenWhenLocked = true
-              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize TotalLocations = dcount(LocationId), TrustedLocations = dcountif(LocationId, IsTrusted == true) | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1) | project TrustedPercentage"
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize TotalLocations = dcount(Id), TrustedLocations = dcountif(Id, IsTrusted == true) | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1) | project TrustedPercentage"
               queryType          = 0
               resourceType       = "microsoft.operationalinsights/workspaces"
             }
