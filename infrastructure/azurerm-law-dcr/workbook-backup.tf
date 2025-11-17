@@ -57,158 +57,172 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
         }
         name = "parameters - time range"
       },
-      # KPI Parameters - Query to set dynamic values
-      {
-        type = 9
-        content = {
-          version = "KqlParameterItem/1.0"
-          parameters = [
-            {
-              id      = "kpi-params"
-              version = "KqlParameterItem/1.0"
-              name    = "KPIData"
-              type    = 1
-              query   = <<-EOT
-                ConditionalAccessPolicies_CL
-                | where TimeGenerated {TimeRange}
-                | summarize
-                    TotalPolicies = dcount(PolicyId),
-                    EnabledPolicies = dcountif(PolicyId, State == 'enabled'),
-                    PoliciesWithExemptions = dcountif(PolicyId, isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles))
-                | extend EnabledPercentage = round((EnabledPolicies * 100.0) / TotalPolicies, 1)
-                | project TotalPolicies, EnabledPolicies, EnabledPercentage, PoliciesWithExemptions
-                | extend result = strcat(TotalPolicies, '|', EnabledPolicies, '|', EnabledPercentage, '|', PoliciesWithExemptions)
-                | project result
-              EOT
-              isHiddenWhenLocked = true
-              timeContext = {
-                durationMs = 0
-              }
-              queryType    = 0
-              resourceType = "microsoft.operationalinsights/workspaces"
-            },
-            {
-              id      = "total-policies"
-              version = "KqlParameterItem/1.0"
-              name    = "TotalPolicies"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[0]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "enabled-policies"
-              version = "KqlParameterItem/1.0"
-              name    = "EnabledPolicies"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[1]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "enabled-percentage"
-              version = "KqlParameterItem/1.0"
-              name    = "EnabledPercentage"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[2]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "policies-with-exemptions"
-              version = "KqlParameterItem/1.0"
-              name    = "PoliciesWithExemptions"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[3]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "location-params"
-              version = "KqlParameterItem/1.0"
-              name    = "LocationData"
-              type    = 1
-              query   = <<-EOT
-                ConditionalAccessNamedLocations_CL
-                | where TimeGenerated {TimeRange}
-                | summarize
-                    TotalLocations = dcount(LocationId),
-                    TrustedLocations = dcountif(LocationId, IsTrusted == true)
-                | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1)
-                | project TotalLocations, TrustedLocations, TrustedPercentage
-                | extend result = strcat(TotalLocations, '|', TrustedLocations, '|', TrustedPercentage)
-                | project result
-              EOT
-              isHiddenWhenLocked = true
-              timeContext = {
-                durationMs = 0
-              }
-              queryType    = 0
-              resourceType = "microsoft.operationalinsights/workspaces"
-            },
-            {
-              id      = "total-locations"
-              version = "KqlParameterItem/1.0"
-              name    = "TotalLocations"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[0]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "trusted-locations"
-              version = "KqlParameterItem/1.0"
-              name    = "TrustedLocations"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[1]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "trusted-percentage"
-              version = "KqlParameterItem/1.0"
-              name    = "TrustedPercentage"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[2]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            }
-          ]
-          style        = "pills"
-          queryType    = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
-        }
-        name = "parameters - kpi data"
-      },
-      # KPI Cards - Large Markdown Stats
+      # KPI Cards Row
       {
         type = 1
         content = {
-          json = <<-EOT
-## 📊 Key Metrics
-
-<div style="display: flex; gap: 20px; flex-wrap: wrap;">
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Total Policies</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{TotalPolicies}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">{EnabledPolicies} enabled ({EnabledPercentage}%)</div>
-  </div>
-
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Policies with Exemptions</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{PoliciesWithExemptions}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">Active exclusions applied</div>
-  </div>
-
-  <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Named Locations</div>
-    <div style="color: white; font-size: 56px; font-weight: 700; line-height: 1;">{TotalLocations}</div>
-    <div style="color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 10px;">{TrustedLocations} trusted ({TrustedPercentage}%)</div>
-  </div>
-</div>
-          EOT
+          json = "## 📊 Key Metrics"
         }
-        name = "markdown - kpi cards"
+        name = "text - kpi section"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | summarize
+                TotalPolicies = dcount(PolicyId),
+                EnabledPolicies = dcountif(PolicyId, State == 'enabled'),
+                DisabledPolicies = dcountif(PolicyId, State == 'disabled'),
+                ReportOnlyPolicies = dcountif(PolicyId, State == 'enabledForReportingButNotEnforced')
+            | extend EnabledPercentage = round((EnabledPolicies * 100.0) / TotalPolicies, 1)
+            | project
+                Metric = "Total Policies",
+                Value = TotalPolicies,
+                Subtext = strcat(EnabledPolicies, " enabled (", EnabledPercentage, "%)")
+          EOT
+          size          = 4
+          title         = ""
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 22
+              formatOptions = {
+                palette = "blue"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "33"
+        name        = "kpi - total policies"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | where State == 'enabled'
+            | summarize
+                PoliciesWithExemptions = countif(isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles)),
+                TotalEnabled = count()
+            | extend ExemptionRate = round((PoliciesWithExemptions * 100.0) / TotalEnabled, 1)
+            | project
+                Metric = "Policies with Exemptions",
+                Value = PoliciesWithExemptions,
+                Subtext = strcat(ExemptionRate, "% of enabled policies")
+          EOT
+          size          = 4
+          title         = ""
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 22
+              formatOptions = {
+                palette = "orange"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "33"
+        name        = "kpi - exemptions"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessNamedLocations_CL
+            | where TimeGenerated {TimeRange}
+            | summarize
+                TotalLocations = dcount(LocationId),
+                TrustedLocations = dcountif(LocationId, IsTrusted == true)
+            | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1)
+            | project
+                Metric = "Named Locations",
+                Value = TotalLocations,
+                Subtext = strcat(TrustedLocations, " trusted (", TrustedPercentage, "%)")
+          EOT
+          size          = 4
+          title         = ""
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 22
+              formatOptions = {
+                palette = "green"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "34"
+        name        = "kpi - locations"
       },
       # Policy State Distribution - Enhanced Donut Chart
       {
@@ -256,6 +270,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             ]
           }
         }
+        customWidth = "40"
         name        = "chart - policies by state"
       },
       {
@@ -288,6 +303,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             yAxis = ["Count"]
           }
         }
+        customWidth = "60"
         name        = "chart - top controls"
       },
       # Recent Activity
@@ -400,6 +416,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             ]
           }
         }
+        customWidth = "40"
         name        = "chart - location trust"
       },
       {
@@ -414,30 +431,6 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             | extend CountryCode = tostring(Country.Code)
             | where isnotempty(CountryCode)
             | summarize Count=count() by CountryCode
-            | extend CountryName = case(
-                CountryCode == "US", "🇺🇸 United States",
-                CountryCode == "GB", "🇬🇧 United Kingdom",
-                CountryCode == "AU", "🇦🇺 Australia",
-                CountryCode == "CA", "🇨🇦 Canada",
-                CountryCode == "DE", "🇩🇪 Germany",
-                CountryCode == "FR", "🇫🇷 France",
-                CountryCode == "IN", "🇮🇳 India",
-                CountryCode == "JP", "🇯🇵 Japan",
-                CountryCode == "CN", "🇨🇳 China",
-                CountryCode == "BR", "🇧🇷 Brazil",
-                CountryCode == "NL", "🇳🇱 Netherlands",
-                CountryCode == "SG", "🇸🇬 Singapore",
-                CountryCode == "IE", "🇮🇪 Ireland",
-                CountryCode == "NZ", "🇳🇿 New Zealand",
-                CountryCode == "ZA", "🇿🇦 South Africa",
-                CountryCode == "MX", "🇲🇽 Mexico",
-                CountryCode == "IT", "🇮🇹 Italy",
-                CountryCode == "ES", "🇪🇸 Spain",
-                CountryCode == "SE", "🇸🇪 Sweden",
-                CountryCode == "CH", "🇨🇭 Switzerland",
-                strcat("🌍 ", CountryCode)
-            )
-            | project CountryName, Count
             | top 10 by Count desc
           EOT
           size          = 0
@@ -450,6 +443,7 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             showLegend = false
           }
         }
+        customWidth = "60"
         name        = "chart - top countries"
       },
       # Policy Trend
