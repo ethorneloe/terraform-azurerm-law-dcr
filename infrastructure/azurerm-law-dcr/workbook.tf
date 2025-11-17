@@ -1,25 +1,32 @@
-# Conditional Access Monitoring Workbook
+# Enhanced Conditional Access Monitoring Workbook with polished visuals
 
-resource "random_uuid" "workbook" {}
+resource "random_uuid" "workbook_enhanced" {}
 
-resource "azurerm_application_insights_workbook" "conditional_access" {
-  name                = random_uuid.workbook.result
+resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
+  name                = random_uuid.workbook_enhanced.result
   resource_group_name = local.rg_name
   location            = local.location
-  display_name        = "Conditional Access Monitoring"
+  display_name        = "Conditional Access Monitoring - Enhanced"
   source_id           = lower(local.law_id)
   category            = "workbook"
 
   data_json = jsonencode({
     version = "Notebook/1.0"
     items = [
+      # Hero section with title and description
       {
         type = 1
         content = {
-          json = "## Conditional Access Policy Monitoring\n\nComprehensive overview of Conditional Access policies, named locations, and exemptions."
+          json = "# 🔐 Conditional Access Policy Monitoring\n---\n### Real-time insights into your Conditional Access security posture\nMonitor policies, track exemptions, and analyze authentication controls across your organization."
         }
-        name = "text - header"
+        name = "text - hero header"
+        styleSettings = {
+          margin      = "20px 0px 10px 0px"
+          showBorder  = false
+          padding     = "0px"
+        }
       },
+      # Time range parameter
       {
         type = 9
         content = {
@@ -29,7 +36,7 @@ resource "azurerm_application_insights_workbook" "conditional_access" {
               id           = "timerange-param"
               version      = "KqlParameterItem/1.0"
               name         = "TimeRange"
-              label        = "Time Range"
+              label        = "📅 Time Range"
               type         = 4
               isRequired   = true
               value        = { durationMs = 604800000 }
@@ -50,194 +57,414 @@ resource "azurerm_application_insights_workbook" "conditional_access" {
         }
         name = "parameters - time range"
       },
+      # KPI Cards Row
       {
         type = 1
         content = {
-          json = "### Policy Overview"
+          json = "## 📊 Key Metrics"
         }
-        name = "text - policy overview"
+        name = "text - kpi section"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| summarize Count=count() by State\n| render piechart"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | summarize
+                TotalPolicies = dcount(PolicyId),
+                EnabledPolicies = dcountif(PolicyId, State == 'enabled'),
+                DisabledPolicies = dcountif(PolicyId, State == 'disabled'),
+                ReportOnlyPolicies = dcountif(PolicyId, State == 'enabledForReportingButNotEnforced')
+            | extend EnabledPercentage = round((EnabledPolicies * 100.0) / TotalPolicies, 1)
+            | project
+                Metric = "Total Policies",
+                Value = TotalPolicies,
+                Subtext = strcat(EnabledPolicies, " enabled (", EnabledPercentage, "%)")
+          EOT
+          size          = 3
+          title         = "Total Policies"
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 12
+              formatOptions = {
+                palette = "blue"
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "33"
+        name        = "kpi - total policies"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | where State == 'enabled'
+            | summarize
+                PoliciesWithExemptions = countif(isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles)),
+                TotalEnabled = count()
+            | extend ExemptionRate = round((PoliciesWithExemptions * 100.0) / TotalEnabled, 1)
+            | project
+                Metric = "Policies with Exemptions",
+                Value = PoliciesWithExemptions,
+                Subtext = strcat(ExemptionRate, "% of enabled policies")
+          EOT
+          size          = 3
+          title         = "Exemptions"
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 12
+              formatOptions = {
+                palette = "orange"
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "33"
+        name        = "kpi - exemptions"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessNamedLocations_CL
+            | where TimeGenerated {TimeRange}
+            | summarize
+                TotalLocations = dcount(LocationId),
+                TrustedLocations = dcountif(LocationId, IsTrusted == true)
+            | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1)
+            | project
+                Metric = "Named Locations",
+                Value = TotalLocations,
+                Subtext = strcat(TrustedLocations, " trusted (", TrustedPercentage, "%)")
+          EOT
+          size          = 3
+          title         = "Named Locations"
+          queryType     = 0
+          resourceType  = "microsoft.operationalinsights/workspaces"
+          visualization = "tiles"
+          tileSettings = {
+            titleContent = {
+              columnMatch = "Metric"
+              formatter   = 1
+            }
+            leftContent = {
+              columnMatch = "Value"
+              formatter   = 12
+              formatOptions = {
+                palette = "green"
+              }
+            }
+            secondaryContent = {
+              columnMatch = "Subtext"
+              formatter   = 1
+            }
+            showBorder = true
+          }
+        }
+        customWidth = "34"
+        name        = "kpi - locations"
+      },
+      # Policy State Distribution - Enhanced Donut Chart
+      {
+        type = 1
+        content = {
+          json = "## 📋 Policy Distribution"
+        }
+        name = "text - policy distribution"
+      },
+      {
+        type = 3
+        content = {
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | summarize Count=count() by State
+            | extend StateLabel = case(
+                State == "enabled", "🟢 Enabled",
+                State == "disabled", "🔴 Disabled",
+                State == "enabledForReportingButNotEnforced", "🟡 Report-Only",
+                "⚪ Unknown"
+            )
+            | project StateLabel, Count
+          EOT
           size          = 0
-          title         = "Policies by State"
+          title         = "Policy State Breakdown"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "piechart"
+          chartSettings = {
+            seriesLabelSettings = [
+              {
+                seriesName = "🟢 Enabled"
+                color      = "green"
+              },
+              {
+                seriesName = "🔴 Disabled"
+                color      = "redBright"
+              },
+              {
+                seriesName = "🟡 Report-Only"
+                color      = "yellow"
+              }
+            ]
+          }
         }
-        customWidth = "50"
-        name        = "query - policies by state"
+        customWidth = "40"
+        name        = "chart - policies by state"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| where State == 'enabled'\n| summarize Count=count() by tostring(BuiltInControls)\n| top 10 by Count desc"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | where State == 'enabled'
+            | extend Controls = tostring(BuiltInControls)
+            | where isnotempty(Controls)
+            | summarize Count=count() by Controls
+            | top 10 by Count desc
+            | extend ControlLabel = case(
+                Controls contains "mfa", "🔐 Multi-Factor Authentication",
+                Controls contains "compliantDevice", "💻 Compliant Device",
+                Controls contains "domainJoinedDevice", "🖥️ Domain Joined Device",
+                Controls contains "approvedApplication", "✅ Approved Application",
+                Controls
+            )
+            | project ControlLabel, Count
+          EOT
           size          = 0
-          title         = "Top Grant Controls Required"
+          title         = "Top Authentication Controls"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "barchart"
+          chartSettings = {
+            yAxis = ["Count"]
+          }
         }
-        customWidth = "50"
-        name        = "query - top grant controls"
+        customWidth = "60"
+        name        = "chart - top controls"
+      },
+      # Recent Activity
+      {
+        type = 1
+        content = {
+          json = "## ⏱️ Recent Activity"
+        }
+        name = "text - recent activity"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| project TimeGenerated, DisplayName, State, Modified\n| order by Modified desc\n| take 20"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated {TimeRange}
+            | extend Age = datetime_diff('day', now(), Modified)
+            | extend StatusIcon = case(
+                State == "enabled", "🟢",
+                State == "disabled", "🔴",
+                "🟡"
+            )
+            | project
+                Status = StatusIcon,
+                ["Policy Name"] = DisplayName,
+                State,
+                ["Last Modified"] = format_datetime(Modified, 'yyyy-MM-dd HH:mm'),
+                ["Days Ago"] = Age
+            | order by ["Last Modified"] desc
+            | take 15
+          EOT
           size          = 0
           title         = "Recently Modified Policies"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "table"
+          gridSettings = {
+            formatters = [
+              {
+                columnMatch     = "Status"
+                formatter       = 1
+                formatOptions   = {
+                  customColumnWidthSetting = "5%"
+                }
+              },
+              {
+                columnMatch = "State"
+                formatter   = 18
+                formatOptions = {
+                  thresholdsOptions = "colors"
+                  thresholdsGrid = [
+                    { operator = "==", text = "enabled", color = "green" },
+                    { operator = "==", text = "disabled", color = "redBright" },
+                    { operator = "Default", color = "yellow" }
+                  ]
+                }
+              },
+              {
+                columnMatch = "Days Ago"
+                formatter   = 18
+                formatOptions = {
+                  thresholdsOptions = "colors"
+                  thresholdsGrid = [
+                    { operator = "<", value = "7", color = "green" },
+                    { operator = "<", value = "30", color = "orange" },
+                    { operator = "Default", color = "gray" }
+                  ]
+                }
+              }
+            ]
+          }
         }
-        name = "query - recently modified"
+        name = "grid - recent modifications"
       },
+      # Named Locations Section
       {
         type = 1
         content = {
-          json = "### Named Locations"
+          json = "## 🌍 Geographic Distribution"
         }
-        name = "text - named locations"
+        name = "text - geography"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| summarize Count=count() by IsTrusted\n| extend TrustStatus = iff(IsTrusted == true, 'Trusted', 'Untrusted')\n| project TrustStatus, Count"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessNamedLocations_CL
+            | where TimeGenerated {TimeRange}
+            | summarize Count=count() by IsTrusted
+            | extend TrustLabel = iff(IsTrusted == true, "🔒 Trusted", "⚠️ Untrusted")
+            | project TrustLabel, Count
+          EOT
           size          = 0
-          title         = "Named Locations by Trust Status"
+          title         = "Location Trust Status"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "piechart"
+          chartSettings = {
+            seriesLabelSettings = [
+              {
+                seriesName = "🔒 Trusted"
+                color      = "green"
+              },
+              {
+                seriesName = "⚠️ Untrusted"
+                color      = "orange"
+              }
+            ]
+          }
         }
-        customWidth = "50"
-        name        = "query - locations by trust"
+        customWidth = "40"
+        name        = "chart - location trust"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| where isnotempty(Countries)\n| mv-expand Country = Countries\n| extend CountryCode = tostring(Country.Code)\n| where isnotempty(CountryCode)\n| summarize Count=count() by CountryCode\n| top 10 by Count desc"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessNamedLocations_CL
+            | where TimeGenerated {TimeRange}
+            | where isnotempty(Countries)
+            | mv-expand Country = Countries
+            | extend CountryCode = tostring(Country.Code)
+            | where isnotempty(CountryCode)
+            | summarize Count=count() by CountryCode
+            | top 10 by Count desc
+          EOT
           size          = 0
           title         = "Top 10 Countries in Named Locations"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "barchart"
+          chartSettings = {
+            yAxis      = ["Count"]
+            showLegend = false
+          }
         }
-        customWidth = "50"
-        name        = "query - top countries"
+        customWidth = "60"
+        name        = "chart - top countries"
       },
+      # Policy Trend
       {
         type = 1
         content = {
-          json = "### Advanced Policy Features"
-        }
-        name = "text - advanced features"
-      },
-      {
-        type = 3
-        content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| where State == 'enabled'\n| where isnotempty(UserRiskLevels) or isnotempty(SignInRiskLevels)\n| project DisplayName, UserRiskLevels, SignInRiskLevels\n| take 20"
-          size          = 0
-          title         = "Risk-Based Policies"
-          queryType     = 0
-          resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "table"
-        }
-        customWidth = "50"
-        name        = "query - risk policies"
-      },
-      {
-        type = 3
-        content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| where State == 'enabled'\n| summarize PoliciesWithAuthStrength = countif(isnotempty(AuthenticationStrengthId)),\n            TotalPolicies = count()\n| extend PercentageWithAuthStrength = round((PoliciesWithAuthStrength * 100.0) / TotalPolicies, 2)\n| project Metric = 'Auth Strength Adoption', Percentage = PercentageWithAuthStrength, PoliciesWithAuthStrength, TotalPolicies"
-          size          = 0
-          title         = "Authentication Strength Adoption"
-          queryType     = 0
-          resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "table"
-        }
-        customWidth = "50"
-        name        = "query - auth strength"
-      },
-      {
-        type = 1
-        content = {
-          json = "### Trends & Usage"
+          json = "## 📈 Trends"
         }
         name = "text - trends"
       },
       {
         type = 3
         content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(30d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| summarize PolicyCount=count() by bin(TimeGenerated, 1d)"
+          version = "KqlItem/1.0"
+          query   = <<-EOT
+            ConditionalAccessPolicies_CL
+            | where TimeGenerated > ago(30d)
+            | summarize arg_max(TimeGenerated, *) by PolicyId
+            | summarize
+                ["Total Policies"] = count(),
+                ["Enabled"] = countif(State == "enabled"),
+                ["Disabled"] = countif(State == "disabled"),
+                ["Report-Only"] = countif(State == "enabledForReportingButNotEnforced")
+                by bin(TimeGenerated, 1d)
+          EOT
           size          = 0
-          title         = "Policy Count Over Time (30 days)"
+          title         = "Policy Count Trend (Last 30 Days)"
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "timechart"
+          visualization = "areachart"
+          chartSettings = {
+            yAxis = ["Total Policies", "Enabled", "Disabled", "Report-Only"]
+          }
         }
-        name = "query - policy count trend"
-      },
-      {
-        type = 3
-        content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| where State == 'enabled'\n| where isnotempty(IncludeLocations)\n| mv-expand Location = IncludeLocations\n| extend LocationName = tostring(Location.DisplayName)\n| where isnotempty(LocationName)\n| summarize PolicyCount=count() by LocationName\n| top 10 by PolicyCount desc"
-          size          = 0
-          title         = "Top Named Locations Referenced in Policies"
-          queryType     = 0
-          resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "barchart"
-        }
-        customWidth = "50"
-        name        = "query - top locations used"
-      },
-      {
-        type = 3
-        content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessPolicies_CL\n| where TimeGenerated {TimeRange}\n| where State == 'enabled'\n| where isnotempty(IncludePlatforms)\n| mv-expand Platform = IncludePlatforms\n| summarize PolicyCount=count() by tostring(Platform)"
-          size          = 0
-          title         = "Policies by Device Platform"
-          queryType     = 0
-          resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "barchart"
-        }
-        customWidth = "50"
-        name        = "query - platforms"
-      },
-      {
-        type = 3
-        content = {
-          version       = "KqlItem/1.0"
-          query         = "ConditionalAccessNamedLocations_CL\n| where TimeGenerated {TimeRange}\n| extend IPCount = array_length(IpRanges),\n         CountryCount = array_length(Countries)\n| project DisplayName, IsTrusted, IPCount, CountryCount, ModifiedDateTime\n| order by ModifiedDateTime desc\n| take 20"
-          size          = 0
-          title         = "Named Locations Details"
-          queryType     = 0
-          resourceType  = "microsoft.operationalinsights/workspaces"
-          visualization = "table"
-        }
-        name = "query - locations detail"
+        name = "chart - policy trend"
       }
     ]
-    fallbackResourceIds = [local.law_id]
+    fallbackResourceIds = [lower(local.law_id)]
+    styleSettings = {
+      paddingStyle = "wide"
+    }
   })
 
   tags = local.common_tags
 
   lifecycle {
     ignore_changes = [
-      name # Prevent recreation due to hash changes
+      name
     ]
   }
 }
