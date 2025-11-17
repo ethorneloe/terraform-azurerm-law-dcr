@@ -1,11 +1,13 @@
 # Conditional Access Monitoring Workbook
 
+resource "random_uuid" "workbook" {}
+
 resource "azurerm_application_insights_workbook" "conditional_access" {
-  name                = "ca-policy-monitor-${substr(md5(local.law_id), 0, 8)}"
+  name                = random_uuid.workbook.result
   resource_group_name = local.rg_name
   location            = local.location
   display_name        = "Conditional Access Monitoring"
-  source_id           = local.law_id
+  source_id           = lower(local.law_id)
   category            = "workbook"
 
   data_json = jsonencode({
