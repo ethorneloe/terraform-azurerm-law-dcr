@@ -83,8 +83,8 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
                 Value = TotalPolicies,
                 Subtext = strcat(EnabledPolicies, " enabled (", EnabledPercentage, "%)")
           EOT
-          size          = 3
-          title         = "Total Policies"
+          size          = 4
+          title         = ""
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "tiles"
@@ -92,12 +92,21 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             titleContent = {
               columnMatch = "Metric"
               formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
             }
             leftContent = {
               columnMatch = "Value"
-              formatter   = 12
+              formatter   = 22
               formatOptions = {
                 palette = "blue"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
               }
             }
             secondaryContent = {
@@ -127,8 +136,8 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
                 Value = PoliciesWithExemptions,
                 Subtext = strcat(ExemptionRate, "% of enabled policies")
           EOT
-          size          = 3
-          title         = "Exemptions"
+          size          = 4
+          title         = ""
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "tiles"
@@ -136,12 +145,21 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             titleContent = {
               columnMatch = "Metric"
               formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
             }
             leftContent = {
               columnMatch = "Value"
-              formatter   = 12
+              formatter   = 22
               formatOptions = {
                 palette = "orange"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
               }
             }
             secondaryContent = {
@@ -170,8 +188,8 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
                 Value = TotalLocations,
                 Subtext = strcat(TrustedLocations, " trusted (", TrustedPercentage, "%)")
           EOT
-          size          = 3
-          title         = "Named Locations"
+          size          = 4
+          title         = ""
           queryType     = 0
           resourceType  = "microsoft.operationalinsights/workspaces"
           visualization = "tiles"
@@ -179,12 +197,21 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
             titleContent = {
               columnMatch = "Metric"
               formatter   = 1
+              formatOptions = {
+                customColumnWidthSetting = "100%"
+              }
             }
             leftContent = {
               columnMatch = "Value"
-              formatter   = 12
+              formatter   = 22
               formatOptions = {
                 palette = "green"
+              }
+              numberFormat = {
+                unit        = 0
+                options     = {
+                  style = "decimal"
+                }
               }
             }
             secondaryContent = {
