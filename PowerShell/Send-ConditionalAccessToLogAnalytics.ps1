@@ -135,13 +135,8 @@ if (-not (Test-Path $azMonitorModulePath)) {
 Import-Module $azMonitorModulePath -Force
 Write-Host "✓ AzMonitorIngestion module imported" -ForegroundColor Green
 
-# Check for EntraAutomation module (contains Get-ConditionalAccessConfiguration)
-if (-not (Get-Module -ListAvailable -Name EntraAutomation)) {
-    Write-Error "EntraAutomation module not found. Install it with: Install-Module -Name EntraAutomation"
-    exit 1
-}
-Import-Module EntraAutomation -Force
-Write-Host "✓ EntraAutomation module imported" -ForegroundColor Green
+# Import-Module EntraAutomation -Force
+# Write-Host "✓ EntraAutomation module imported" -ForegroundColor Green
 
 Write-Host ""
 

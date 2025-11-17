@@ -53,4 +53,15 @@ output "conditional_access_named_locations_stream_name" {
   value       = module.conditional_access_named_locations_table.stream_name
 }
 
+# Conditional Access Workbook outputs
+output "workbook_id" {
+  description = "Resource ID of the Conditional Access monitoring workbook"
+  value       = azurerm_application_insights_workbook.conditional_access.id
+}
+
+output "workbook_name" {
+  description = "Display name of the Conditional Access monitoring workbook"
+  value       = azurerm_application_insights_workbook.conditional_access.display_name
+}
+
 # Add additional outputs here as you create more custom table files
