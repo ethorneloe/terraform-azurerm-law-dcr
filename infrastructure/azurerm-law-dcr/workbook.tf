@@ -57,121 +57,81 @@ resource "azurerm_application_insights_workbook" "conditional_access_enhanced" {
         }
         name = "parameters - time range"
       },
-      # KPI Parameters - Query to set dynamic values
+      # KPI Parameters - Direct queries for each value
       {
         type = 9
         content = {
           version = "KqlParameterItem/1.0"
           parameters = [
             {
-              id      = "kpi-params"
-              version = "KqlParameterItem/1.0"
-              name    = "KPIData"
-              type    = 1
-              query   = <<-EOT
-                ConditionalAccessPolicies_CL
-                | where TimeGenerated {TimeRange}
-                | summarize
-                    TotalPolicies = dcount(PolicyId),
-                    EnabledPolicies = dcountif(PolicyId, State == 'enabled'),
-                    PoliciesWithExemptions = dcountif(PolicyId, isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles))
-                | extend EnabledPercentage = round((EnabledPolicies * 100.0) / TotalPolicies, 1)
-                | project TotalPolicies, EnabledPolicies, EnabledPercentage, PoliciesWithExemptions
-                | extend result = strcat(TotalPolicies, '|', EnabledPolicies, '|', EnabledPercentage, '|', PoliciesWithExemptions)
-                | project result
-              EOT
+              id                 = "total-policies-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "TotalPolicies"
+              type               = 1
               isHiddenWhenLocked = true
-              timeContext = {
-                durationMs = 0
-              }
-              queryType    = 0
-              resourceType = "microsoft.operationalinsights/workspaces"
+              query              = "ConditionalAccessPolicies_CL | where TimeGenerated {TimeRange} | summarize dcount(PolicyId)"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "total-policies"
-              version = "KqlParameterItem/1.0"
-              name    = "TotalPolicies"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[0]"
+              id                 = "enabled-policies-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "EnabledPolicies"
+              type               = 1
               isHiddenWhenLocked = true
-              queryType    = 8
+              query              = "ConditionalAccessPolicies_CL | where TimeGenerated {TimeRange} | where State == 'enabled' | summarize dcount(PolicyId)"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "enabled-policies"
-              version = "KqlParameterItem/1.0"
-              name    = "EnabledPolicies"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[1]"
+              id                 = "enabled-percentage-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "EnabledPercentage"
+              type               = 1
               isHiddenWhenLocked = true
-              queryType    = 8
+              query              = "ConditionalAccessPolicies_CL | where TimeGenerated {TimeRange} | summarize TotalPolicies = dcount(PolicyId), EnabledPolicies = dcountif(PolicyId, State == 'enabled') | extend EnabledPercentage = round((EnabledPolicies * 100.0) / TotalPolicies, 1) | project EnabledPercentage"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "enabled-percentage"
-              version = "KqlParameterItem/1.0"
-              name    = "EnabledPercentage"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[2]"
+              id                 = "exemptions-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "PoliciesWithExemptions"
+              type               = 1
               isHiddenWhenLocked = true
-              queryType    = 8
+              query              = "ConditionalAccessPolicies_CL | where TimeGenerated {TimeRange} | where State == 'enabled' | where isnotempty(ExcludeGroups) or isnotempty(ExcludeUsers) or isnotempty(ExcludeRoles) | summarize dcount(PolicyId)"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "policies-with-exemptions"
-              version = "KqlParameterItem/1.0"
-              name    = "PoliciesWithExemptions"
-              type    = 1
-              query   = "print split('{KPIData}', '|')[3]"
+              id                 = "total-locations-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "TotalLocations"
+              type               = 1
               isHiddenWhenLocked = true
-              queryType    = 8
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize dcount(LocationId)"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "location-params"
-              version = "KqlParameterItem/1.0"
-              name    = "LocationData"
-              type    = 1
-              query   = <<-EOT
-                ConditionalAccessNamedLocations_CL
-                | where TimeGenerated {TimeRange}
-                | summarize
-                    TotalLocations = dcount(LocationId),
-                    TrustedLocations = dcountif(LocationId, IsTrusted == true)
-                | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1)
-                | project TotalLocations, TrustedLocations, TrustedPercentage
-                | extend result = strcat(TotalLocations, '|', TrustedLocations, '|', TrustedPercentage)
-                | project result
-              EOT
+              id                 = "trusted-locations-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "TrustedLocations"
+              type               = 1
               isHiddenWhenLocked = true
-              timeContext = {
-                durationMs = 0
-              }
-              queryType    = 0
-              resourceType = "microsoft.operationalinsights/workspaces"
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | where IsTrusted == true | summarize dcount(LocationId)"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             },
             {
-              id      = "total-locations"
-              version = "KqlParameterItem/1.0"
-              name    = "TotalLocations"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[0]"
+              id                 = "trusted-percentage-param"
+              version            = "KqlParameterItem/1.0"
+              name               = "TrustedPercentage"
+              type               = 1
               isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "trusted-locations"
-              version = "KqlParameterItem/1.0"
-              name    = "TrustedLocations"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[1]"
-              isHiddenWhenLocked = true
-              queryType    = 8
-            },
-            {
-              id      = "trusted-percentage"
-              version = "KqlParameterItem/1.0"
-              name    = "TrustedPercentage"
-              type    = 1
-              query   = "print split('{LocationData}', '|')[2]"
-              isHiddenWhenLocked = true
-              queryType    = 8
+              query              = "ConditionalAccessNamedLocations_CL | where TimeGenerated {TimeRange} | summarize TotalLocations = dcount(LocationId), TrustedLocations = dcountif(LocationId, IsTrusted == true) | extend TrustedPercentage = round((TrustedLocations * 100.0) / TotalLocations, 1) | project TrustedPercentage"
+              queryType          = 0
+              resourceType       = "microsoft.operationalinsights/workspaces"
             }
           ]
           style        = "pills"
