@@ -1,10 +1,5 @@
 variable "dashboard_name" {
-  description = "Name of the Grafana dashboard"
-  type        = string
-}
-
-variable "grafana_id" {
-  description = "Resource ID of the Azure Managed Grafana instance"
+  description = "Name of the Grafana dashboard (used for reference only)"
   type        = string
 }
 
@@ -14,7 +9,10 @@ variable "dashboard_json" {
 }
 
 variable "tags" {
-  description = "Tags to apply to the dashboard"
+  description = "Tags to apply (Note: Grafana dashboards don't support Azure tags directly)"
   type        = map(string)
   default     = {}
 }
+
+# Note: grafana_id is no longer needed with Grafana provider
+# The provider configuration handles the Grafana instance connection

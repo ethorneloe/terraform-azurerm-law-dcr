@@ -8,7 +8,6 @@ module "conditional_access_policies_dashboard" {
   source = "./modules/grafana-dashboard"
 
   dashboard_name = "conditional-access-policies-dashboard"
-  grafana_id     = local.grafana_id
   dashboard_json = file("${path.module}/dashboards/conditional_access_policies_dashboard.json")
 
   tags = merge(local.common_tags, {
@@ -28,7 +27,6 @@ module "conditional_access_named_locations_dashboard" {
   source = "./modules/grafana-dashboard"
 
   dashboard_name = "conditional-access-named-locations-dashboard"
-  grafana_id     = local.grafana_id
   dashboard_json = file("${path.module}/dashboards/conditional_access_named_locations_dashboard.json")
 
   tags = merge(local.common_tags, {

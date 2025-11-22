@@ -1,14 +1,13 @@
-# Deploy Grafana dashboard from JSON file
-resource "azapi_resource" "grafana_dashboard" {
-  type      = "Microsoft.Dashboard/grafana/dashboards@2023-09-01"
-  name      = var.dashboard_name
-  parent_id = var.grafana_id
+# Deploy Grafana dashboard using the Grafana provider
+# Note: This requires the Grafana provider to be configured with access to your Azure Managed Grafana instance
 
-  body = {
-    properties = {
-      dashboard = var.dashboard_json
-    }
+resource "grafana_dashboard" "main" {
+  config_json = var.dashboard_json
+
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes made through Grafana UI
+      config_json
+    ]
   }
-
-  tags = var.tags
 }

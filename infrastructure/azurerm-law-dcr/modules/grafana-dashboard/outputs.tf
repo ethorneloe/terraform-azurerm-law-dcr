@@ -1,6 +1,16 @@
 output "dashboard_id" {
-  description = "Resource ID of the Grafana dashboard"
-  value       = azapi_resource.grafana_dashboard.id
+  description = "ID of the Grafana dashboard"
+  value       = grafana_dashboard.main.id
+}
+
+output "dashboard_uid" {
+  description = "UID of the Grafana dashboard"
+  value       = grafana_dashboard.main.uid
+}
+
+output "dashboard_url" {
+  description = "URL of the Grafana dashboard"
+  value       = grafana_dashboard.main.url
 }
 
 output "dashboard_name" {
