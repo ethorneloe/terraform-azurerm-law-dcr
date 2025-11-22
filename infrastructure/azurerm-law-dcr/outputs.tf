@@ -64,25 +64,4 @@ output "workbook_name" {
   value       = azurerm_application_insights_workbook.conditional_access_enhanced.display_name
 }
 
-# Grafana outputs
-output "grafana_id" {
-  description = "Azure Managed Grafana workspace ID"
-  value       = local.grafana_id
-}
-
-output "grafana_endpoint" {
-  description = "Azure Managed Grafana workspace endpoint URL"
-  value       = local.grafana_endpoint
-}
-
-output "conditional_access_policies_dashboard_url" {
-  description = "URL for Conditional Access Policies dashboard"
-  value       = local.deploy_dashboards ? module.conditional_access_policies_dashboard[0].dashboard_url : null
-}
-
-output "conditional_access_named_locations_dashboard_url" {
-  description = "URL for Conditional Access Named Locations dashboard"
-  value       = local.deploy_dashboards ? module.conditional_access_named_locations_dashboard[0].dashboard_url : null
-}
-
 # Add additional outputs here as you create more custom table files

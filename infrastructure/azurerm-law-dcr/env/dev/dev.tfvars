@@ -29,19 +29,3 @@ tags = {
 #   "87654321-4321-4321-4321-210987654321"   # SP for App2
 # ]
 log_ingestion_sp_object_ids = []
-
-# Azure Managed Grafana Configuration
-# Set create_grafana_instance = true to create a new Grafana instance
-# Or set it to false and provide existing Grafana details to use an existing instance
-#
-# Option 1: Create new Grafana instance
-# create_grafana_instance        = true
-# grafana_name                   = "grafana-dev-001"
-# grafana_resource_group_name    = "rg-monitoring-dev"  # Optional - defaults to LAW resource group
-# deploy_grafana_dashboards      = true
-#
-# Option 2: Use existing Grafana instance
-# create_grafana_instance        = false
-# grafana_name                   = "existing-grafana-001"
-# grafana_resource_group_name    = "rg-monitoring-dev"
-# deploy_grafana_dashboards      = true
