@@ -29,3 +29,11 @@ tags = {
 #   "87654321-4321-4321-4321-210987654321"   # SP for App2
 # ]
 log_ingestion_sp_object_ids = []
+
+# Azure Managed Grafana Configuration (Optional)
+# Uncomment and configure to deploy Grafana dashboards
+# Set to null or comment out to skip Grafana dashboard deployment
+#
+# grafana_name                = "grafana-dev-001"
+# grafana_resource_group_name = "rg-monitoring-dev"
+# deploy_grafana_dashboards   = true

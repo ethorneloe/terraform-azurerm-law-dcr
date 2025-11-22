@@ -6,14 +6,20 @@ This Terraform configuration deploys custom tables and Data Collection Rules (DC
 
 ```
 infrastructure/azurerm-law-dcr/
-├── main.tf                # Shared data sources and locals
-├── variables.tf           # Environment-level variables (LAW, DCE, tags)
-├── outputs.tf             # Outputs for all tables
-├── providers.tf           # Provider configuration
-├── app_metrics.tf         # Custom table: AppMetrics_CL + DCR
-├── security_events.tf     # Custom table: SecurityEvents_CL + DCR
-├── [your_table].tf        # Add more custom table files here
-├── env/                   # Environment-specific configurations
+├── main.tf                       # Shared data sources and locals
+├── variables.tf                  # Environment-level variables (LAW, DCE, tags)
+├── outputs.tf                    # Outputs for all tables
+├── providers.tf                  # Provider configuration
+├── app_metrics.tf                # Custom table: AppMetrics_CL + DCR
+├── security_events.tf            # Custom table: SecurityEvents_CL + DCR
+├── grafana_workspace.tf          # Grafana workspace configuration
+├── grafana_dashboards.tf         # Grafana dashboards deployment
+├── [your_table].tf               # Add more custom table files here
+├── GRAFANA.md                    # Grafana dashboards documentation
+├── dashboards/                   # Grafana dashboard JSON files
+│   ├── app_metrics_dashboard.json
+│   └── security_events_dashboard.json
+├── env/                          # Environment-specific configurations
 │   ├── dev/
 │   │   └── dev.tfvars
 │   ├── test/
@@ -21,10 +27,15 @@ infrastructure/azurerm-law-dcr/
 │   └── prod/
 │       └── prod.tfvars
 └── modules/
-    └── custom-log-table/  # Reusable module
+    ├── custom-log-table/         # Reusable module
+    │   ├── main.tf
+    │   ├── variables.tf
+    │   └── outputs.tf
+    └── grafana-dashboard/        # Grafana dashboard module
         ├── main.tf
         ├── variables.tf
-        └── outputs.tf
+        ├── outputs.tf
+        └── versions.tf
 ```
 
 ## Key Design Principles
@@ -34,6 +45,7 @@ infrastructure/azurerm-law-dcr/
 3. **Non-monolithic**: Easy to add/remove tables by adding/removing individual files
 4. **Environment variables**: Only environment-level config (LAW, DCE, common tags) in `.tfvars`
 5. **Table-specific config**: Schema, retention, and KQL transforms are defined directly in each table's `.tf` file
+6. **Optional Grafana dashboards**: Pre-built Grafana dashboards for visualizing custom table data (see [GRAFANA.md](GRAFANA.md))
 
 ## Prerequisites
 
@@ -256,6 +268,33 @@ resource "azurerm_role_assignment" "automation_metrics_publisher" {
 - Uses "Analytics" plan for better querying
 - Longer retention (90 days hot, 1 year total)
 - Includes KQL transformation to enrich severity levels
+
+## Grafana Dashboards
+
+This repository includes support for Azure Managed Grafana dashboards to visualize data from your custom tables. Grafana provides a modern, feature-rich alternative to Azure Workbooks.
+
+**Features**:
+- Pre-built dashboards for each custom table
+- Azure Monitor datasource integration
+- Real-time metrics visualization
+- Customizable queries and panels
+- Infrastructure as Code deployment
+
+**Quick Start**:
+1. Ensure you have an Azure Managed Grafana workspace
+2. Configure Grafana variables in your `.tfvars` file:
+   ```hcl
+   grafana_name                = "grafana-dev-001"
+   grafana_resource_group_name = "rg-monitoring-dev"
+   deploy_grafana_dashboards   = true
+   ```
+3. Deploy: `terraform apply -var-file="env/dev/dev.tfvars"`
+
+**For complete documentation**, see [GRAFANA.md](GRAFANA.md) including:
+- Dashboard descriptions and features
+- Configuration options
+- Customization guide
+- Troubleshooting tips
 
 ## Outputs
 
