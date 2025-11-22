@@ -1,0 +1,203 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]}
+      },
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by Id\n| count",
+            "resource": "$workspace"
+          },
+          "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Named Locations",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"values": false, "calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by Id\n| where IsTrusted == true\n| count",
+            "resource": "$workspace"
+          },
+          "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Trusted Locations",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"hideFrom": {"tooltip": false, "viz": false, "legend": false}},
+          "mappings": []
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Trusted"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "Untrusted"}, "properties": [{"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "id": 3,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"]},
+        "pieType": "donut"
+      },
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by Id\n| extend TrustStatus = iff(IsTrusted == true, 'Trusted', 'Untrusted')\n| summarize Count = count() by TrustStatus",
+            "resource": "$workspace"
+          },
+          "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Location Trust Status",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "fillOpacity": 80,
+            "hideFrom": {"tooltip": false, "viz": false, "legend": false},
+            "lineWidth": 1
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "id": 4,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": false},
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none"
+      },
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by Id\n| where isnotempty(Countries)\n| mv-expand Country = Countries\n| extend CountryCode = tostring(Country.Code)\n| where isnotempty(CountryCode)\n| summarize Count = count() by CountryCode\n| order by Count desc\n| limit 10",
+            "resource": "$workspace"
+          },
+          "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Countries in Named Locations",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "color": {"mode": "thresholds"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "IsTrusted"},
+            "properties": [
+              {"id": "custom.width", "value": 100},
+              {"id": "mappings", "value": [{"options": {"true": {"color": "green", "index": 0, "text": "Trusted"}, "false": {"color": "orange", "index": 1, "text": "Untrusted"}}, "type": "value"}]},
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}}
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 12},
+      "id": 5,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "show": false}, "showHeader": true, "sortBy": [{"desc": true, "displayName": "ModifiedDateTime"}]},
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessNamedLocations_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by Id\n| project DisplayName, IsTrusted, IpRanges, Countries, CreatedDateTime, ModifiedDateTime\n| order by ModifiedDateTime desc",
+            "resource": "$workspace"
+          },
+          "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "$datasource"},
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Named Locations",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["conditional-access", "entra-id", "security", "locations"],
+  "templating": {
+    "list": [
+      {"current": {}, "hide": 0, "name": "datasource", "options": [], "query": "grafana-azure-monitor-datasource", "refresh": 1, "type": "datasource"},
+      {"current": {}, "hide": 0, "name": "workspace", "options": [], "query": {"azureLogAnalytics": {"query": ""}, "queryType": "Azure Log Analytics"}, "refresh": 1, "type": "query"}
+    ]
+  },
+  "time": {"from": "now-7d", "to": "now"},
+  "timezone": "",
+  "title": "Conditional Access Named Locations",
+  "uid": "ca-named-locations-dashboard",
+  "version": 1
+}

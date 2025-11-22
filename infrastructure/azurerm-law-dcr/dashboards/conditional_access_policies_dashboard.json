@@ -71,7 +71,7 @@
       "targets": [
         {
           "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| count",
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| summarize dcount(PolicyId)",
             "resource": "$workspace"
           },
           "datasource": {
@@ -82,7 +82,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total Sign-ins (24h)",
+      "title": "Total Policies",
       "type": "stat"
     },
     {
@@ -102,14 +102,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 20
               }
             ]
           },
@@ -142,7 +134,7 @@
       "targets": [
         {
           "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where Status != \"success\"\n| count",
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| where State == 'enabled'\n| count",
             "resource": "$workspace"
           },
           "datasource": {
@@ -153,7 +145,7 @@
           "refId": "A"
         }
       ],
-      "title": "Failed Sign-ins (24h)",
+      "title": "Enabled Policies",
       "type": "stat"
     },
     {
@@ -171,16 +163,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "yellow",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
               }
             ]
           },
@@ -213,7 +197,7 @@
       "targets": [
         {
           "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where RiskCategory == \"High Risk\"\n| count",
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| where State == 'enabledForReportingButNotEnforced'\n| count",
             "resource": "$workspace"
           },
           "datasource": {
@@ -224,7 +208,7 @@
           "refId": "A"
         }
       ],
-      "title": "High Risk Sign-ins (24h)",
+      "title": "Report-Only Policies",
       "type": "stat"
     },
     {
@@ -237,38 +221,17 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                  "text": "0%"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "max": 100,
-          "min": 0,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "red",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "green",
-                "value": 80
               }
             ]
           },
-          "unit": "percent"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -280,6 +243,9 @@
       },
       "id": 4,
       "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
@@ -288,14 +254,13 @@
           ],
           "fields": ""
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.0",
       "targets": [
         {
           "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where ConditionalAccessStatus != \"notApplied\"\n| summarize Total = count(), Success = countif(ConditionalAccessStatus == \"success\")\n| extend SuccessRate = (Success * 100.0) / Total\n| project SuccessRate",
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| where State == 'disabled'\n| count",
             "resource": "$workspace"
           },
           "datasource": {
@@ -306,8 +271,319 @@
           "refId": "A"
         }
       ],
-      "title": "CA Policy Success Rate",
-      "type": "gauge"
+      "title": "Disabled Policies",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "enabled"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "enabledForReportingButNotEnforced"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "disabled"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| summarize Count = count() by State",
+            "resource": "$workspace"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "$datasource"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Policy State Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| where State == 'enabled'\n| where isnotempty(BuiltInControls)\n| mv-expand BuiltInControls\n| summarize Count = count() by tostring(BuiltInControls)\n| order by Count desc\n| limit 10",
+            "resource": "$workspace"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "$datasource"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Authentication Controls",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "enabled": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "Enabled"
+                      },
+                      "disabled": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "Disabled"
+                      },
+                      "enabledForReportingButNotEnforced": {
+                        "color": "yellow",
+                        "index": 2,
+                        "text": "Report-Only"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Modified"
+          }
+        ]
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(7d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| project DisplayName, State, Modified, Created, BuiltInControls, Operator\n| order by Modified desc\n| limit 50",
+            "resource": "$workspace"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "$datasource"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Conditional Access Policies",
+      "type": "table"
     },
     {
       "datasource": {
@@ -361,46 +637,15 @@
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "success"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "failure"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 4
+        "y": 22
       },
-      "id": 5,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -416,7 +661,7 @@
       "targets": [
         {
           "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| summarize count() by bin(TimeGenerated, 30m), Status\n| render timechart",
+            "query": "ConditionalAccessPolicies_CL\n| where TimeGenerated > ago(30d)\n| summarize arg_max(TimeGenerated, *) by PolicyId\n| summarize\n    Total = dcount(PolicyId),\n    Enabled = dcountif(PolicyId, State == 'enabled'),\n    Disabled = dcountif(PolicyId, State == 'disabled'),\n    ReportOnly = dcountif(PolicyId, State == 'enabledForReportingButNotEnforced')\n    by bin(TimeGenerated, 1d)",
             "resource": "$workspace"
           },
           "datasource": {
@@ -427,601 +672,18 @@
           "refId": "A"
         }
       ],
-      "title": "Sign-ins Over Time (by Status)",
+      "title": "Policy Count Trend (Last 30 Days)",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            }
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 4
-      },
-      "id": 6,
-      "options": {
-        "displayLabels": ["percent"],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": ["value", "percent"]
-        },
-        "pieType": "donut",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where ConditionalAccessStatus != \"notApplied\"\n| summarize Count = count() by ConditionalAccessStatus\n| order by Count desc",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Conditional Access Results",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 12
-      },
-      "id": 7,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where PolicyName != \"\"\n| summarize Count = count() by PolicyName\n| order by Count desc\n| limit 10",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Top 10 Conditional Access Policies",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            }
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "id": 8,
-      "options": {
-        "displayLabels": ["percent"],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": ["value", "percent"]
-        },
-        "pieType": "pie",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| summarize Count = count() by RiskCategory\n| order by Count desc",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Sign-ins by Risk Category",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Status"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 90
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "success": {
-                        "color": "green",
-                        "index": 0,
-                        "text": "Success"
-                      },
-                      "failure": {
-                        "color": "red",
-                        "index": 1,
-                        "text": "Failed"
-                      },
-                      "interrupted": {
-                        "color": "yellow",
-                        "index": 2,
-                        "text": "Interrupted"
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "RiskCategory"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "High Risk": {
-                        "color": "red",
-                        "index": 0
-                      },
-                      "Medium Risk": {
-                        "color": "orange",
-                        "index": 1
-                      },
-                      "Low Risk": {
-                        "color": "yellow",
-                        "index": 2
-                      },
-                      "No Risk": {
-                        "color": "green",
-                        "index": 3
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 20
-      },
-      "id": 9,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "TimeGenerated"
-          }
-        ]
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(1h)\n| project TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location, Status, ConditionalAccessStatus, PolicyName, RiskCategory, MfaDetail, DeviceOS\n| order by TimeGenerated desc\n| limit 100",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Recent Sign-in Events",
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 30
-      },
-      "id": 10,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| summarize Count = count() by AppDisplayName\n| order by Count desc\n| limit 10",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Top 10 Applications",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            }
-          },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 30
-      },
-      "id": 11,
-      "options": {
-        "displayLabels": ["name", "percent"],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": ["value"]
-        },
-        "pieType": "pie",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where AuthenticationMethod != \"\"\n| summarize Count = count() by AuthenticationMethod\n| order by Count desc",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Authentication Methods Used",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "grafana-azure-monitor-datasource",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "custom": {
-            "fillOpacity": 70,
-            "lineWidth": 0,
-            "spanNulls": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 38
-      },
-      "id": 12,
-      "options": {
-        "alignValue": "left",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "mergeValues": true,
-        "rowHeight": 0.9,
-        "showValue": "auto",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "azureLogAnalytics": {
-            "query": "ConditionalAccessSignIns_CL\n| where TimeGenerated > ago(24h)\n| where Location != \"\"\n| summarize Count = count() by bin(TimeGenerated, 1h), Location\n| order by TimeGenerated asc",
-            "resource": "$workspace"
-          },
-          "datasource": {
-            "type": "grafana-azure-monitor-datasource",
-            "uid": "$datasource"
-          },
-          "queryType": "Azure Log Analytics",
-          "refId": "A"
-        }
-      ],
-      "title": "Sign-in Activity Heatmap by Location",
-      "type": "state-timeline"
     }
   ],
-  "refresh": "1m",
+  "refresh": "5m",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
     "conditional-access",
     "entra-id",
     "security",
-    "sign-ins"
+    "policies"
   ],
   "templating": {
     "list": [
@@ -1062,13 +724,13 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Conditional Access & Sign-ins Dashboard",
-  "uid": "conditional-access-dashboard",
+  "title": "Conditional Access Policies",
+  "uid": "ca-policies-dashboard",
   "version": 1,
   "weekStart": ""
 }

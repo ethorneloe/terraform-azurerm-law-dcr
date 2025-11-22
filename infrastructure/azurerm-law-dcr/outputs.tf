@@ -53,22 +53,6 @@ output "security_events_stream_name" {
   value       = module.security_events.stream_name
 }
 
-# Conditional Access Sign-ins table outputs
-output "conditional_access_signins_dcr_id" {
-  description = "DCR Resource ID for Conditional Access Sign-ins table"
-  value       = module.conditional_access_signins.dcr_id
-}
-
-output "conditional_access_signins_dcr_immutable_id" {
-  description = "DCR Immutable ID for Conditional Access Sign-ins (use for data ingestion)"
-  value       = module.conditional_access_signins.dcr_immutable_id
-}
-
-output "conditional_access_signins_stream_name" {
-  description = "Stream name for Conditional Access Sign-ins ingestion"
-  value       = module.conditional_access_signins.stream_name
-}
-
 # Add additional outputs here as you create more custom table files
 
 # Grafana outputs
@@ -77,9 +61,14 @@ output "grafana_id" {
   value       = local.grafana_id
 }
 
-output "conditional_access_dashboard_id" {
-  description = "Grafana dashboard ID for Conditional Access & Sign-ins"
-  value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.conditional_access_dashboard[0].dashboard_id : null
+output "conditional_access_policies_dashboard_id" {
+  description = "Grafana dashboard ID for Conditional Access Policies"
+  value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.conditional_access_policies_dashboard[0].dashboard_id : null
+}
+
+output "conditional_access_named_locations_dashboard_id" {
+  description = "Grafana dashboard ID for Conditional Access Named Locations"
+  value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.conditional_access_named_locations_dashboard[0].dashboard_id : null
 }
 
 # Example dashboard outputs (commented out)
