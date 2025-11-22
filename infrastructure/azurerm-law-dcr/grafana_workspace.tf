@@ -22,6 +22,7 @@ resource "azurerm_dashboard_grafana" "main" {
   deterministic_outbound_ip_enabled = false
   public_network_access_enabled     = true
   sku                               = "Standard"
+  grafana_major_version             = "10"
 
   identity {
     type = "SystemAssigned"
