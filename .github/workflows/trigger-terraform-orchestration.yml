@@ -18,6 +18,7 @@ permissions:
   contents: read         # Needed for the checkout action
   actions: read          # Needed for the upload-sarif action
   security-events: write # Needed for the upload-sarif action
+  pull-requests: write   # Needed to post Terraform plan as PR comment
 
 on:
   push:
