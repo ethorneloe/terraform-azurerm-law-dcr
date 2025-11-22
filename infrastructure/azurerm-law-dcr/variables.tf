@@ -41,22 +41,3 @@ variable "log_ingestion_sp_object_ids" {
   type        = list(string)
   default     = []
 }
-
-# Azure Managed Grafana configuration (optional)
-variable "grafana_name" {
-  description = "Name of the existing Azure Managed Grafana workspace (optional - set to null to skip Grafana dashboards)"
-  type        = string
-  default     = null
-}
-
-variable "grafana_resource_group_name" {
-  description = "Resource group name where the Azure Managed Grafana workspace exists (optional)"
-  type        = string
-  default     = null
-}
-
-variable "deploy_grafana_dashboards" {
-  description = "Whether to deploy Grafana dashboards (requires grafana_name to be set)"
-  type        = bool
-  default     = true
-}

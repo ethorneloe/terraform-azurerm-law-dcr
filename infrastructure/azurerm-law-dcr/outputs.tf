@@ -65,30 +65,3 @@ output "workbook_name" {
 }
 
 # Add additional outputs here as you create more custom table files
-
-# Grafana outputs
-output "grafana_id" {
-  description = "Azure Managed Grafana workspace ID"
-  value       = local.grafana_id
-}
-
-output "conditional_access_policies_dashboard_id" {
-  description = "Grafana dashboard ID for Conditional Access Policies"
-  value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.conditional_access_policies_dashboard[0].dashboard_id : null
-}
-
-output "conditional_access_named_locations_dashboard_id" {
-  description = "Grafana dashboard ID for Conditional Access Named Locations"
-  value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.conditional_access_named_locations_dashboard[0].dashboard_id : null
-}
-
-# Example dashboard outputs (commented out)
-# output "app_metrics_dashboard_id" {
-#   description = "Grafana dashboard ID for Application Metrics"
-#   value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.app_metrics_dashboard[0].dashboard_id : null
-# }
-#
-# output "security_events_dashboard_id" {
-#   description = "Grafana dashboard ID for Security Events"
-#   value       = var.grafana_name != null && var.deploy_grafana_dashboards ? module.security_events_dashboard[0].dashboard_id : null
-# }
