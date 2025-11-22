@@ -256,45 +256,84 @@ resource "azurerm_role_assignment" "automation_metrics_publisher" {
 7. **Schema Format**: Schema must include table name and column descriptions
 8. **RBAC Required**: Sending identities need "Monitoring Metrics Publisher" role
 
-## Example Tables
+## Implemented Custom Tables
 
-### AppMetrics_CL ([app_metrics.tf](app_metrics.tf))
+### ConditionalAccessSignIns_CL ([conditional_access_signins.tf](conditional_access_signins.tf))
+**Entra ID (Azure AD) Conditional Access Sign-in Monitoring**
+
+Captures detailed sign-in events with conditional access policy evaluation:
+- **Schema**: 22 columns including user details, location, device info, CA policy results, risk levels
+- **Plan**: Analytics (optimized for security queries and analysis)
+- **Retention**: 90 days hot, 2 years total (for compliance)
+- **KQL Transform**: Enriches data with RiskCategory and StatusCategory fields
+- **Use Case**: Monitor Conditional Access policy effectiveness, track failed sign-ins, identify high-risk activity, audit MFA usage
+
+**Key Fields**:
+- User & App: UserPrincipalName, AppDisplayName, AppId
+- Authentication: AuthenticationMethod, MfaDetail
+- Device: DeviceOS, DeviceBrowser, IsCompliant, IsManaged
+- Security: ConditionalAccessStatus, PolicyName, PolicyResult, RiskLevel
+- Context: IPAddress, Location, TimeGenerated
+
+### Example Tables (For Reference)
+
+The repository includes example table configurations that demonstrate different use cases:
+
+#### AppMetrics_CL ([app_metrics.tf](app_metrics.tf))
 - High-volume application performance metrics
-- Uses "Basic" plan for cost efficiency
+- Uses "Basic" plan for cost efficiency (8-day retention)
 - Simple schema with metric name/value pairs
+- Example of metrics collection pattern
 
-### SecurityEvents_CL ([security_events.tf](security_events.tf))
+#### SecurityEvents_CL ([security_events.tf](security_events.tf))
 - Security events and alerts
 - Uses "Analytics" plan for better querying
-- Longer retention (90 days hot, 1 year total)
-- Includes KQL transformation to enrich severity levels
+- Includes KQL transformation example
+- Template for general security monitoring
 
 ## Grafana Dashboards
 
-This repository includes support for Azure Managed Grafana dashboards to visualize data from your custom tables. Grafana provides a modern, feature-rich alternative to Azure Workbooks.
+This repository includes **Azure Managed Grafana dashboard** support for visualizing data from custom Log Analytics tables. Grafana provides a modern, feature-rich alternative to Azure Workbooks with better visualizations and infrastructure-as-code deployment.
 
-**Features**:
-- Pre-built dashboards for each custom table
-- Azure Monitor datasource integration
-- Real-time metrics visualization
-- Customizable queries and panels
-- Infrastructure as Code deployment
+### Conditional Access Dashboard
 
-**Quick Start**:
-1. Ensure you have an Azure Managed Grafana workspace
-2. Configure Grafana variables in your `.tfvars` file:
+The main dashboard provides comprehensive visibility into your Entra ID Conditional Access policies and sign-in activity:
+
+**Monitoring Capabilities**:
+- Sign-in volume and success/failure trends
+- Conditional Access policy effectiveness (success rate gauge)
+- High-risk sign-in detection
+- Policy evaluation breakdown (success/failure/notApplied)
+- Top policies, applications, and authentication methods
+- Geographic and temporal activity patterns
+- Real-time sign-in event table with color-coded risk indicators
+
+**Dashboard Features**:
+- 12 interactive panels with drill-down capabilities
+- 1-minute auto-refresh for real-time monitoring
+- 24-hour default time range
+- Template variables for datasource/workspace selection
+- Color-coded risk and status indicators
+- Pre-built KQL queries optimized for performance
+
+### Quick Start
+
+1. **Create or use existing Azure Managed Grafana workspace** (free tier available)
+2. **Configure in your `.tfvars` file**:
    ```hcl
    grafana_name                = "grafana-dev-001"
    grafana_resource_group_name = "rg-monitoring-dev"
    deploy_grafana_dashboards   = true
    ```
-3. Deploy: `terraform apply -var-file="env/dev/dev.tfvars"`
+3. **Deploy**: `terraform apply -var-file="env/dev/dev.tfvars"`
+4. **Access**: Open Grafana → Dashboards → "Conditional Access & Sign-ins Dashboard"
 
-**For complete documentation**, see [GRAFANA.md](GRAFANA.md) including:
-- Dashboard descriptions and features
-- Configuration options
-- Customization guide
-- Troubleshooting tips
+**Complete Documentation**: See [GRAFANA.md](GRAFANA.md) for:
+- Detailed dashboard panel descriptions
+- Configuration options and customization guide
+- KQL query examples (time series, aggregations, filtering)
+- Troubleshooting tips and best practices
+- How to create additional custom dashboards
 
 ## Outputs
 

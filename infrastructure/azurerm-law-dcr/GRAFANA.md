@@ -29,42 +29,68 @@ Azure Managed Grafana is a fully managed service for analytics and monitoring th
 
 ## Available Dashboards
 
-### 1. Application Metrics Dashboard
-**File**: `dashboards/app_metrics_dashboard.json`
-**Table**: `AppMetrics_CL`
+### Conditional Access & Sign-ins Dashboard
+**File**: `dashboards/conditional_access_dashboard.json`
+**Table**: `ConditionalAccessSignIns_CL`
+**Data Source**: Entra ID (Azure AD) Sign-in Logs with Conditional Access Policy Evaluation
 
-Visualizes application performance metrics with:
-- Time series charts showing metric trends
-- Gauge displays for active applications
-- Summary tables with min/max/avg values
-- Environment distribution pie chart
+This comprehensive security dashboard provides deep visibility into your organization's Entra ID (Azure AD) Conditional Access policies and user sign-in activity.
 
-**Key Panels**:
-- Application Metrics Over Time (5-minute intervals)
-- Active Applications (last 5 minutes)
-- Metric Summary Table (last hour)
-- Metrics by Environment
+**Key Metrics** (Top Row):
+- **Total Sign-ins (24h)**: Overall sign-in volume
+- **Failed Sign-ins (24h)**: Failed authentication attempts with thresholds
+- **High Risk Sign-ins (24h)**: Sign-ins flagged as high risk by Identity Protection
+- **CA Policy Success Rate**: Gauge showing conditional access policy effectiveness
 
-### 2. Security Events Dashboard
-**File**: `dashboards/security_events_dashboard.json`
-**Table**: `SecurityEvents_CL`
+**Trend Analysis**:
+- **Sign-ins Over Time (by Status)**: 30-minute interval time series showing success/failure patterns
+- **Conditional Access Results**: Donut chart breaking down policy evaluation outcomes (success, failure, notApplied)
 
-Security monitoring dashboard with:
-- Real-time event statistics
-- Severity-based visualizations
-- Source IP and user activity tracking
-- Recent events table
+**Policy & Risk Monitoring**:
+- **Top 10 Conditional Access Policies**: Most frequently evaluated policies
+- **Sign-ins by Risk Category**: Distribution across High/Medium/Low/No Risk categories
 
-**Key Panels**:
-- Total Events counter
-- Critical/High Severity events counter
-- Unique Source IPs counter
-- Event Types counter
-- Events by Severity Over Time
-- Top 10 Event Types (pie chart)
-- Recent Security Events (table with color-coded severity)
-- Top 10 Source IPs (bar chart)
-- Top 10 Users (bar chart)
+**User Activity**:
+- **Recent Sign-in Events**: Live table with color-coded status and risk indicators showing:
+  - TimeGenerated, UserPrincipalName, AppDisplayName
+  - IPAddress, Location, Device OS
+  - Status, Conditional Access Status, Policy Name
+  - Risk Category, MFA Details
+- **Top 10 Applications**: Most accessed applications
+- **Authentication Methods Used**: Breakdown of auth methods (Password, MFA, Certificate, etc.)
+
+**Geographic & Device Intelligence**:
+- **Sign-in Activity Heatmap by Location**: Timeline visualization showing sign-in patterns across locations
+
+**Use Cases**:
+- Monitor Conditional Access policy effectiveness
+- Identify failed authentication attempts and patterns
+- Track high-risk sign-ins requiring investigation
+- Analyze MFA adoption and authentication methods
+- Detect unusual geographic access patterns
+- Audit policy coverage and gaps
+- Compliance reporting for security requirements
+
+**Auto-refresh**: 1 minute
+**Default Time Range**: Last 24 hours
+
+---
+
+### Example Dashboards (Available but Not Deployed)
+
+The repository also includes example dashboards that can be used as templates:
+
+#### Application Metrics Dashboard (Example)
+**File**: `dashboards/app_metrics_dashboard.json` | **Table**: `AppMetrics_CL`
+- Time series charts, gauges, summary tables, environment distribution
+- Useful template for application performance monitoring
+
+#### Security Events Dashboard (Example)
+**File**: `dashboards/security_events_dashboard.json` | **Table**: `SecurityEvents_CL`
+- Event statistics, severity visualizations, IP/user tracking
+- Useful template for general security event monitoring
+
+To deploy these example dashboards, uncomment the relevant module blocks in `grafana_dashboards.tf` and ensure the corresponding custom tables are created.
 
 ## Configuration
 
@@ -210,30 +236,59 @@ output "your_custom_dashboard_id" {
 
 ## Query Language (KQL)
 
-Dashboards use Kusto Query Language (KQL) to query Log Analytics. Example queries:
+Dashboards use Kusto Query Language (KQL) to query Log Analytics. Example queries for Conditional Access data:
 
-### Time Series
+### Time Series - Sign-ins Over Time
 ```kql
-AppMetrics_CL
-| where TimeGenerated > ago(1h)
-| summarize avg(MetricValue) by bin(TimeGenerated, 5m), MetricName
+ConditionalAccessSignIns_CL
+| where TimeGenerated > ago(24h)
+| summarize count() by bin(TimeGenerated, 30m), Status
 | render timechart
 ```
 
-### Aggregations
+### Aggregations - Policy Effectiveness
 ```kql
-SecurityEvents_CL
-| where TimeGenerated > ago(6h)
-| summarize count() by EventType
-| order by count_ desc
+ConditionalAccessSignIns_CL
+| where TimeGenerated > ago(24h)
+| where ConditionalAccessStatus != "notApplied"
+| summarize Count = count() by PolicyName, PolicyResult
+| order by Count desc
 ```
 
-### Filtering
+### Filtering - High Risk Sign-ins
 ```kql
-SecurityEvents_CL
-| where Severity <= 2  // Critical or High
+ConditionalAccessSignIns_CL
+| where RiskCategory == "High Risk"
 | where TimeGenerated > ago(1h)
-| project TimeGenerated, EventType, SeverityLevel, SourceIP
+| project TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location, RiskLevel, Status
+| order by TimeGenerated desc
+```
+
+### Advanced - Failed MFA with Conditional Access
+```kql
+ConditionalAccessSignIns_CL
+| where TimeGenerated > ago(24h)
+| where Status == "failure"
+| where MfaDetail != ""
+| summarize FailureCount = count() by UserPrincipalName, FailureReason, Location
+| order by FailureCount desc
+| limit 20
+```
+
+### Complex - Policy Coverage Analysis
+```kql
+ConditionalAccessSignIns_CL
+| where TimeGenerated > ago(7d)
+| summarize
+    TotalSignIns = count(),
+    Covered = countif(ConditionalAccessStatus != "notApplied"),
+    Success = countif(ConditionalAccessStatus == "success"),
+    Failed = countif(ConditionalAccessStatus == "failure")
+    by AppDisplayName
+| extend CoveragePercent = (Covered * 100.0) / TotalSignIns
+| extend SuccessRate = (Success * 100.0) / Covered
+| where TotalSignIns > 10
+| order by CoveragePercent asc
 ```
 
 ## Troubleshooting
@@ -259,13 +314,15 @@ SecurityEvents_CL
 
 1. **Verify custom tables have data**:
    ```kql
-   AppMetrics_CL
+   ConditionalAccessSignIns_CL
    | take 10
    ```
 
-2. **Check time range** in dashboard (default is last 6 hours)
+2. **Check time range** in dashboard (default is last 24 hours for Conditional Access dashboard)
 
 3. **Verify workspace variable** is set correctly in dashboard
+
+4. **Ensure data is being ingested**: Check that sign-in data is actively being sent to the custom table
 
 ### Dashboard Shows Errors
 
